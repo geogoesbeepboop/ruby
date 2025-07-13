@@ -65,7 +65,7 @@ class ChatStore {
         } catch {
             print("❌ [ChatStore] AI initialization failed: \(error.localizedDescription)")
             lastError = .sessionInitializationFailed
-            currentState = .error("Failed to initialize AI")
+            currentState = .error("Failed to initialize AI") // Keep error state for initialization failures
         }
     }
     
@@ -188,23 +188,42 @@ class ChatStore {
             }
             
         } catch let error as LanguageModelSession.GenerationError {
-            // Specific handling for GenerationError types
+            // Comprehensive handling for all GenerationError types
+            let chatError: ChatError
+            
             switch error {
-            case .exceededContextWindowSize(let context):
-                lastError = .contextWindowExceeded
+            case .exceededContextWindowSize(_):
+                chatError = .contextWindowExceeded
                 await handleContextWindowExceeded()
-                print("Error: Context window size exceeded. \(error.errorDescription). The specific failure reason is:  \(error.failureReason ?? " No failure reason detected..." ). Recovery Suggestion is to: \(error.recoverySuggestion ?? "No recovery suggestion detected")")
-//            case .decodingFailure(let context):
-//                print("Error: Decoding Failure. \(error.errorDescription). The specific failure reason is:  \(error.failureReason ?? " No failure reason detected..." ). Recovery Suggestion is to: \(error.recoverySuggestion ?? "No recovery suggestion detected")")
+                print("Error: Context window exceeded - \(error.errorDescription ?? "No description")")
+                
+            case .assetsUnavailable(_):
+                chatError = .assetsUnavailable
+                print("Error: Assets unavailable - \(error.errorDescription ?? "No description")")
+                
+            case .decodingFailure(_):
+                chatError = .decodingFailure
+                print("Error: Decoding failure - \(error.errorDescription ?? "No description")")
+                
+            case .guardrailViolation(_):
+                chatError = .guardrailViolation
+                print("Error: Guardrail violation - \(error.errorDescription ?? "No description")")
+                
+            case .unsupportedGuide(_):
+                chatError = .unsupportedGuide
+                print("Error: Unsupported guide - \(error.errorDescription ?? "No description")")
+                
             default:
-                lastError = .modelUnavailable
-                currentState = .error("AI model temporarily unavailable")
-                print("An unexpected generation error occurred: \(error.errorDescription). The specific failure reason is:  \(error.failureReason ?? " No failure reason detected..." ). Recovery Suggestion is to: \(error.recoverySuggestion ?? "No recovery suggestion detected")")
+                chatError = .modelUnavailable
+                print("Error: Unexpected generation error - \(error.errorDescription ?? "No description")")
             }
+            
+            // Generate user-friendly error message using AI
+            await handleErrorWithAIMessage(chatError)
+            
         } catch {
-            print("❌ [ChatStore] Unknown error occurred with LMS: \(error.localizedDescription)")
-            lastError = .modelUnavailable
-            currentState = .error("Failed to generate response")
+            print("❌ [ChatStore] Unknown error occurred: \(error.localizedDescription)")
+            await handleErrorWithAIMessage(.modelUnavailable)
         }
         isAITyping = false
         print("🏁 [ChatStore] generateAIResponse completed")
@@ -321,13 +340,11 @@ class ChatStore {
                 print("✅ [ChatStore] AI message added to chat, returning to active state")
             } else {
                 print("❌ [ChatStore] Response was nil")
-                lastError = .modelUnavailable
-                currentState = .error("No response from AI")
+                await handleErrorWithAIMessage(.modelUnavailable)
             }
         } catch {
             print("❌ [ChatStore] Error in generateCompleteResponse: \(error.localizedDescription)")
-            lastError = .modelUnavailable
-            currentState = .error("Failed to generate response")
+            await handleErrorWithAIMessage(.modelUnavailable)
         }
     }
     
@@ -350,6 +367,107 @@ class ChatStore {
         )
         messages.append(systemMessage)
         currentState = .activeChat
+    }
+    
+    // MARK: - Error Handling with AI Messages
+    
+    private func handleErrorWithAIMessage(_ error: ChatError) async {
+        print("🤖 [ChatStore] Generating user-friendly error message for: \(error)")
+        
+        // Set error state but continue processing
+        lastError = error
+        
+        // For critical errors that need immediate handling, handle them first
+        if error == .contextWindowExceeded {
+            return // handleContextWindowExceeded already called
+        }
+        
+        // Generate user-friendly error message using AI
+        guard let session = languageSession else {
+            // Fallback if AI session is not available
+            addFallbackErrorMessage(for: error)
+            currentState = .activeChat
+            return
+        }
+        
+        do {
+            let errorContext = """
+            Technical Error: \(error.errorDescription ?? "Unknown error occurred")
+            
+            Your task: Convert this technical error into a warm, conversational response that:
+            1. Explains to the user why you can't fulfill their request in a friendly way
+            2. Offers a helpful suggestion if appropriate
+            3. Maintains a positive, encouraging tone
+            4. Sounds like you're speaking directly to them as your AI assistant
+            
+            Examples:
+            - For unsafe content: "I can't help with that kind of content, but I'd be happy to chat about something else!"
+            - For technical issues: "Oops, I'm having a small technical hiccup. Mind trying that again?"
+            - For unavailable features: "That feature isn't available right now, but here's what I can help with instead..."
+            """
+            
+            let userFriendlyError = try await session.respond(
+                to: errorContext,
+                generating: UserFriendlyErrorMessage.self
+            )
+//            try await session.GenerationOptions(prompt:
+//                prompt: errorContext,
+//                options: LanguageModelSession.GenerationOptions(
+//                    generationMode: .complete,
+//                    outputSchema: .type(UserFriendlyErrorMessage.self)
+//                )
+//            )
+            
+            // Add the AI-generated error message as a chat message
+            let errorMessage = ChatMessage(
+                content: userFriendlyError.content.message + (userFriendlyError.content.suggestion.map { "\n\n\($0)" } ?? ""),
+                isUser: false,
+                timestamp: Date(),
+                metadata: ChatMessage.MessageMetadata(
+                    processingTime: nil,
+                    tokens: nil,
+                    confidence: 0.9
+                )
+            )
+            
+            messages.append(errorMessage)
+            currentState = .activeChat
+            print("✅ [ChatStore] Added user-friendly error message to chat")
+            
+        } catch {
+            print("❌ [ChatStore] Failed to generate user-friendly error message: \(error.localizedDescription)")
+            // Fallback to standard error message
+            addFallbackErrorMessage(for: .assetsUnavailable)
+            currentState = .activeChat
+        }
+    }
+    
+    private func addFallbackErrorMessage(for error: ChatError) {
+        let fallbackMessage: String
+        
+        switch error {
+        case .guardrailViolation:
+            fallbackMessage = "I can't help with that kind of content, but I'd be happy to chat about something else! What else would you like to talk about?"
+        case .contextWindowExceeded:
+            fallbackMessage = "Our conversation has gotten quite long! I'll need to start fresh, but feel free to continue where we left off."
+        case .assetsUnavailable:
+            fallbackMessage = "I'm having trouble accessing some resources right now. Could you try again in a moment?"
+        case .decodingFailure:
+            fallbackMessage = "Something got a bit scrambled on my end. Mind trying that again?"
+        case .unsupportedGuide:
+            fallbackMessage = "I'm not quite sure how to format that response. Could you try asking in a different way?"
+        default:
+            fallbackMessage = "I'm having a small technical hiccup. Could you try that again? I'm here and ready to help!"
+        }
+        
+        let errorMessage = ChatMessage(
+            content: fallbackMessage,
+            isUser: false,
+            timestamp: Date()
+        )
+        
+        messages.append(errorMessage)
+        print("✅ [ChatStore] Added fallback error message to chat")
     }
     
     // MARK: - Voice Recognition

@@ -106,6 +106,18 @@ struct MessageAnalysis {
     let requiresTools: Bool
 }
 
+@Generable
+struct UserFriendlyErrorMessage {
+    @Guide(description: "A warm, conversational message explaining why the AI can't fulfill the request, written as if the AI is speaking directly to the user")
+    let message: String
+    
+    @Guide(description: "A helpful suggestion for what the user could try instead, if applicable")
+    let suggestion: String?
+    
+    @Guide(description: "The tone of the message: apologetic, helpful, encouraging, or informative")
+    let tone: String
+}
+
 // MARK: - Error Types
 
 enum ChatError: LocalizedError {
@@ -117,6 +129,12 @@ enum ChatError: LocalizedError {
     case permissionDenied
     case saveFailed
     case loadFailed
+    
+    // New LanguageModelSession.GenerationError specific cases
+    case assetsUnavailable
+    case decodingFailure
+    case guardrailViolation
+    case unsupportedGuide
     
     var errorDescription: String? {
         switch self {
@@ -136,6 +154,23 @@ enum ChatError: LocalizedError {
             return "Failed to save data"
         case .loadFailed:
             return "Failed to load data"
+        case .assetsUnavailable:
+            return "Required AI assets are currently unavailable"
+        case .decodingFailure:
+            return "Failed to process AI response format"
+        case .guardrailViolation:
+            return "Content detected likely to be unsafe"
+        case .unsupportedGuide:
+            return "Unsupported response format requested"
+        }
+    }
+    
+    var isUserFacingError: Bool {
+        switch self {
+        case .guardrailViolation, .contextWindowExceeded:
+            return true
+        default:
+            return false
         }
     }
 }

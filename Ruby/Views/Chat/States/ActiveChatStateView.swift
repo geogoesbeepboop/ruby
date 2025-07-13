@@ -20,18 +20,22 @@ struct ActiveChatStateView: View {
                 VStack(spacing: 0) {
                     // Chat header
                     ChatHeaderView()
+                        .zIndex(1) // Keep header above scroll content
 
-                    // Messages list
+                    // Messages list with proper spacing
                     MessagesList(
                         selectedMessageId: $selectedMessageId,
                         showingReactionPicker: $showingReactionPicker
                     )
+                    .layoutPriority(1) // Give priority to messages area
+                    .clipped() // Prevent overflow
 
                     // Input panel
                     InputPanel(
                         messageText: $messageText,
                         isTextFieldFocused: $isTextFieldFocused
                     )
+                    .zIndex(1) // Keep input panel above scroll content
                 }
             }
         }
@@ -167,6 +171,10 @@ private struct MessagesList: View {
     @Binding var selectedMessageId: UUID?
     @Binding var showingReactionPicker: Bool
 
+    @State private var scrollProxy: ScrollViewProxy?
+    @State private var shouldMaintainPosition = false
+    @State private var lastScrollTargetId: AnyHashable?
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -182,37 +190,68 @@ private struct MessagesList: View {
                         .id(message.id)
                     }
 
-                    // Streaming message if AI is typing
-                    if chatStore.currentState == .streaming
-                        && !chatStore.streamingContent.isEmpty
-                    {
-                        StreamingMessageView(
-                            content: chatStore.streamingContent
-                        )
+                    // AI typing bubble or streaming message
+                    if chatStore.currentState == .aiThinking {
+                        TypingBubbleView()
+                            .id("typing")
+                            .onAppear {
+                                if lastScrollTargetId as? String != "typing" {
+                                    withAnimation(.easeOut(duration: 0.3)) {
+                                        proxy.scrollTo("typing", anchor: .bottom)
+                                    }
+                                    lastScrollTargetId = "typing"
+                                }
+                            }
+                    } else if chatStore.currentState == .streaming,
+                              !chatStore.streamingContent.isEmpty {
+                        StreamingMessageView(content: chatStore.streamingContent)
+                            .id("streaming")
+                            .onAppear {
+                                if lastScrollTargetId as? String != "streaming" {
+                                    withAnimation(.easeOut(duration: 0.3)) {
+                                        proxy.scrollTo("streaming", anchor: .bottom)
+                                    }
+                                    lastScrollTargetId = "streaming"
+                                }
+                            }
                     }
 
-                    // Bottom spacing
-                    Color.clear.frame(height: 20)
+                    Color.clear.frame(height: 120) // Bottom padding
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 20)
             }
-            .onChange(of: chatStore.messages.count) { _, _ in
-                withAnimation(.easeOut(duration: 0.5)) {
-                    if let lastMessage = chatStore.messages.last {
+            .onAppear {
+                scrollProxy = proxy
+                if let lastMessage = chatStore.messages.last {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        lastScrollTargetId = lastMessage.id
                     }
                 }
             }
-            .onChange(of: chatStore.streamingContent) { _, _ in
-                withAnimation(.easeOut(duration: 0.3)) {
-                    proxy.scrollTo("streaming", anchor: .bottom)
+            .onChange(of: chatStore.messages.count) { oldCount, newCount in
+                if newCount > oldCount,
+                   let lastMessage = chatStore.messages.last {
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                    }
+                    lastScrollTargetId = lastMessage.id
+                }
+            }
+            .onChange(of: chatStore.streamingContent) { oldContent, newContent in
+                if !newContent.isEmpty && newContent != oldContent {
+                    withAnimation(.easeOut(duration: 0.1)) {
+                        proxy.scrollTo("streaming", anchor: .bottom)
+                    }
+                    lastScrollTargetId = "streaming"
                 }
             }
         }
         .scrollDismissesKeyboard(.interactively)
     }
 }
+
 
 @available(iOS 26.0, *)
 private struct MessageBubbleView: View {
@@ -331,11 +370,12 @@ private struct MessageMetadataView: View {
                     .foregroundStyle(.tertiary)
             }
 
-            if let tokens = metadata.tokens {
-                Text("\(tokens) tokens")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
+            // Tokens display removed for more natural conversation flow
+            // if let tokens = metadata.tokens {
+            //     Text("\(tokens) tokens")
+            //         .font(.caption2)
+            //         .foregroundStyle(.tertiary)
+            // }
 
             if let confidence = metadata.confidence {
                 HStack(spacing: 2) {
@@ -664,6 +704,50 @@ private struct SettingsSheet: View {
                         dismiss()
                     }
                 }
+            }
+        }
+    }
+}
+
+// MARK: - Typing Bubble
+
+@available(iOS 26.0, *)
+private struct TypingBubbleView: View {
+    @State private var animationPhase = 0
+    
+    var body: some View {
+        ChatBubble(isUser: false, timestamp: Date()) {
+            HStack(spacing: 8) {
+                ForEach(0..<3) { index in
+                    Circle()
+                        .fill(Color(hex: "9b6cb0"))
+                        .frame(width: 8, height: 8)
+                        .scaleEffect(
+                            animationPhase == index ? 1.4 : 0.8
+                        )
+                        .opacity(
+                            animationPhase == index ? 1.0 : 0.6
+                        )
+                        .animation(.easeInOut(duration: 0.4), value: animationPhase)
+                }
+                
+                // Add some spacing to make it look more like a message
+                Spacer().frame(width: 20)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+        }
+        .id("typing")
+        .onAppear {
+            startTypingAnimation()
+        }
+        .accessibilityLabel("AI is typing")
+    }
+    
+    private func startTypingAnimation() {
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.4)) {
+                animationPhase = (animationPhase + 1) % 3
             }
         }
     }

@@ -32,9 +32,6 @@ struct HomeView: View {
                     delay: 3.0
                 )
                 
-                // Sparkle effects for ambiance
-                SparkleEffect()
-                
                 // Main content
                 VStack(spacing: 40) {
                     Spacer()
@@ -135,6 +132,9 @@ struct HomeView: View {
                     
                     Spacer()
                 }
+                
+                // Sparkle effects overlaid on top of all content
+                SparkleEffect()
             }
             .onAppear {
                 pulseAnimation = true

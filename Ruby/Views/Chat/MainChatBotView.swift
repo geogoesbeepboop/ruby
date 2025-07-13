@@ -34,13 +34,10 @@ struct MainChatBotView: View {
                                     insertion: .scale.combined(with: .opacity),
                                     removal: .scale.combined(with: .opacity)
                                 ))
-                        case .aiThinking:
-                            AIThinkingStateView()
-                                .opacity(1)
-                                .blur(radius: 0)
-                                .animation(.easeInOut, value: true)
-                        case .streaming:
-                            ActiveChatStateView() // Streaming is handled within ActiveChatStateView
+                        case .aiThinking, .streaming:
+                            // Both AI thinking and streaming use the same view
+                            // Typing bubble and streaming are handled within ActiveChatStateView
+                            ActiveChatStateView()
                                 .transition(.opacity)
                         
                         case .error(let message):
