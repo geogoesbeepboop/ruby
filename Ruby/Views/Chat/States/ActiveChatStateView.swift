@@ -134,14 +134,14 @@ private struct AIStatusIndicator: View {
         switch chatStore.currentState {
         case .activeChat:
             return .green
-        case .aiThinking, .streaming:
+        case .aiThinking:
             return Color(hex: "fc9afb")
+        case .streaming:
+            return Color(hex: "9b6cb0")
         case .voiceListening:
             return .blue
         case .error:
             return .red
-        default:
-            return .gray
         }
     }
 
@@ -155,10 +155,8 @@ private struct AIStatusIndicator: View {
             return "Typing..."
         case .voiceListening:
             return "Listening"
-        case .error:
+        case .error(let message):
             return "Error"
-        default:
-            return "Ready"
         }
     }
 }
@@ -171,15 +169,12 @@ private struct MessagesList: View {
     @Binding var selectedMessageId: UUID?
     @Binding var showingReactionPicker: Bool
 
-    @State private var scrollProxy: ScrollViewProxy?
-    @State private var shouldMaintainPosition = false
-    @State private var lastScrollTargetId: AnyHashable?
-
     var body: some View {
-        ScrollViewReader { proxy in
+        ScrollViewReader { scrollViewProxy in
             ScrollView {
-                LazyVStack(spacing: 16) {
-                    ForEach(chatStore.messages) { message in
+                let sortedMessages = chatStore.messages.sorted { $0.timestamp < $1.timestamp }
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(sortedMessages) { message in
                         MessageBubbleView(
                             message: message,
                             onLongPress: { messageId in
@@ -189,63 +184,45 @@ private struct MessagesList: View {
                         )
                         .id(message.id)
                     }
-
-                    // AI typing bubble or streaming message
+                    
+                    // AI typing bubble when thinking
                     if chatStore.currentState == .aiThinking {
                         TypingBubbleView()
-                            .id("typing")
-                            .onAppear {
-                                if lastScrollTargetId as? String != "typing" {
-                                    withAnimation(.easeOut(duration: 0.3)) {
-                                        proxy.scrollTo("typing", anchor: .bottom)
-                                    }
-                                    lastScrollTargetId = "typing"
-                                }
-                            }
-                    } else if chatStore.currentState == .streaming,
-                              !chatStore.streamingContent.isEmpty {
-                        StreamingMessageView(content: chatStore.streamingContent)
-                            .id("streaming")
-                            .onAppear {
-                                if lastScrollTargetId as? String != "streaming" {
-                                    withAnimation(.easeOut(duration: 0.3)) {
-                                        proxy.scrollTo("streaming", anchor: .bottom)
-                                    }
-                                    lastScrollTargetId = "streaming"
-                                }
-                            }
+                            .id("live_response")
                     }
-
-                    Color.clear.frame(height: 120) // Bottom padding
+                    
+                    // Streaming content when AI is responding
+                    if chatStore.currentState == .streaming && !chatStore.streamingContent.isEmpty {
+                        StreamingMessageView(content: chatStore.streamingContent)
+                            .id("live_response")
+                    }
+                    
+                    Color.clear.frame(height: 80).id("bottom_padding")
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 20)
             }
+            .onChange(of: chatStore.messages.count) { _, _ in
+                withAnimation {
+                    scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
+                }
+            }
+            .onChange(of: chatStore.streamingContent) { _, _ in
+                if !chatStore.streamingContent.isEmpty {
+                    withAnimation {
+                        scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
+                    }
+                }
+            }
+            .onChange(of: chatStore.currentState) { _, newState in
+                if newState == .aiThinking || newState == .streaming {
+                    withAnimation {
+                        scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
+                    }
+                }
+            }
             .onAppear {
-                scrollProxy = proxy
-                if let lastMessage = chatStore.messages.last {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        lastScrollTargetId = lastMessage.id
-                    }
-                }
-            }
-            .onChange(of: chatStore.messages.count) { oldCount, newCount in
-                if newCount > oldCount,
-                   let lastMessage = chatStore.messages.last {
-                    withAnimation(.easeOut(duration: 0.5)) {
-                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                    }
-                    lastScrollTargetId = lastMessage.id
-                }
-            }
-            .onChange(of: chatStore.streamingContent) { oldContent, newContent in
-                if !newContent.isEmpty && newContent != oldContent {
-                    withAnimation(.easeOut(duration: 0.1)) {
-                        proxy.scrollTo("streaming", anchor: .bottom)
-                    }
-                    lastScrollTargetId = "streaming"
-                }
+                scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
             }
         }
         .scrollDismissesKeyboard(.interactively)
@@ -479,40 +456,64 @@ struct MessageInputField: View {
 
     let sendMessage: () -> Void
     let startVoiceRecording: () -> Void
+    
+    @State private var textHeight: CGFloat = 44
+    private let minHeight: CGFloat = 44
+    private let maxHeight: CGFloat = 120
 
     var body: some View {
-        ZStack {
-            TextField(
-                isVoiceRecording ? "Listening..." : "Type a message...",
-                text: $messageText,
-                axis: .vertical
-            )
-            .focused($isTextFieldFocused)
-            .font(.system(size: 16, weight: .medium, design: .rounded))
-            .lineLimit(1...4)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .padding(.trailing, 50)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
-            .submitLabel(.send)
-            .onSubmit(sendMessage)
-
-            HStack {
-                Spacer()
-                if shouldShowMicButton {
-                    MicButton(
-                        isRecording: isVoiceRecording,
-                        startVoiceRecording: startVoiceRecording
-                    )
-                } else {
-                    SendButton(
-                        canSendMessage: canSendMessage,
-                        sendMessage: sendMessage
-                    )
+        HStack(alignment: .bottom, spacing: 8) {
+            ZStack(alignment: .topLeading) {
+                // Hidden Text for height calculation
+                Text(messageText.isEmpty ? " " : messageText)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(GeometryReader { geometry in
+                        Color.clear.onAppear {
+                            let newHeight = max(minHeight, min(maxHeight, geometry.size.height))
+                            if abs(textHeight - newHeight) > 1 {
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    textHeight = newHeight
+                                }
+                            }
+                        }
+                    })
+                    .opacity(0)
+                
+                TextField(
+                    isVoiceRecording ? "Listening..." : "Ask anything",
+                    text: $messageText,
+                    axis: .vertical
+                )
+                .focused($isTextFieldFocused)
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .frame(minHeight: textHeight)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: min(textHeight / 2, 22)))
+                .submitLabel(.send)
+                .onSubmit {
+                    if !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        sendMessage()
+                    }
                 }
+                .tint(.white)
             }
-            .padding(.trailing, 8)
+            
+            if shouldShowMicButton {
+                MicButton(
+                    isRecording: isVoiceRecording,
+                    startVoiceRecording: startVoiceRecording
+                )
+            } else {
+                SendButton(
+                    canSendMessage: canSendMessage,
+                    sendMessage: sendMessage
+                )
+            }
         }
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

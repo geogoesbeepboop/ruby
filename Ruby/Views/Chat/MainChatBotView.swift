@@ -19,34 +19,9 @@ struct MainChatBotView: View {
             // Main content with state transitions
             GeometryReader { geometry in
                 ZStack {
-                    // State-specific views
-                        switch chatStore.currentState {
-                        case .activeChat:
-                            ActiveChatStateView()
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                                    removal: .move(edge: .top).combined(with: .opacity)
-                                ))
-                        
-                        case .voiceListening:
-                            VoiceListeningStateView()
-                                .transition(.asymmetric(
-                                    insertion: .scale.combined(with: .opacity),
-                                    removal: .scale.combined(with: .opacity)
-                                ))
-                        case .aiThinking, .streaming:
-                            // Both AI thinking and streaming use the same view
-                            // Typing bubble and streaming are handled within ActiveChatStateView
-                            ActiveChatStateView()
-                                .transition(.opacity)
-                        
-                        case .error(let message):
-                            ErrorStateView(errorMessage: message)
-                                .transition(.asymmetric(
-                                    insertion: .scale.combined(with: .opacity),
-                                    removal: .scale.combined(with: .opacity)
-                                ))
-                        }
+                    // Only use ActiveChatStateView for all states
+                    ActiveChatStateView()
+                        .transition(.opacity)
                     // Lets hide this button for now
 //                    if shouldShowSettingsButton {
 //                        VStack {
