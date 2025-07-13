@@ -571,7 +571,7 @@ struct ChatBubble<Content: View>: View {
 
                 Text(timestamp, style: .time)
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.black)
                     .padding(.horizontal, 8)
             }
 

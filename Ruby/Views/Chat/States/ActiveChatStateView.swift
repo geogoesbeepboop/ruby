@@ -20,22 +20,22 @@ struct ActiveChatStateView: View {
                 VStack(spacing: 0) {
                     // Chat header
                     ChatHeaderView()
-                        .zIndex(1) // Keep header above scroll content
+                        .zIndex(1)  // Keep header above scroll content
 
                     // Messages list with proper spacing
                     MessagesList(
                         selectedMessageId: $selectedMessageId,
                         showingReactionPicker: $showingReactionPicker
                     )
-                    .layoutPriority(1) // Give priority to messages area
-                    .clipped() // Prevent overflow
+                    .layoutPriority(1)  // Give priority to messages area
+                    .clipped()  // Prevent overflow
 
                     // Input panel
                     InputPanel(
                         messageText: $messageText,
                         isTextFieldFocused: $isTextFieldFocused
                     )
-                    .zIndex(1) // Keep input panel above scroll content
+                    .zIndex(1)  // Keep input panel above scroll content
                 }
             }
         }
@@ -55,45 +55,33 @@ private struct ChatHeaderView: View {
     @State private var showingSettings = false
 
     var body: some View {
-        GlassEffectContainer(
-            cornerRadius: 0,
-            blurRadius: 8,
-            opacity: 0.3
-        ) {
+        ZStack {
+            // 1. Center Title and Subtitle
+            VStack(spacing: 2) {
+                Text("Ruby")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: "fc9afb"), Color(hex: "9b6cb0"),
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                Text(chatStore.settings.selectedPersona.rawValue)
+                    .font(.caption)
+                    .foregroundStyle(.black)
+            }
+
+            // 2. Align Buttons to the Sides
             HStack {
-                // AI status indicator
-                AIStatusIndicator()
+                // AI Status Indicator on the left
+                AIStatusIndicator() // Assuming this is a custom view you have
 
                 Spacer()
 
-                // Chat title
-                VStack(spacing: 2) {
-                    Text("Ruby")
-                        .font(
-                            .system(
-                                size: 18,
-                                weight: .semibold,
-                                design: .rounded
-                            )
-                        )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [
-                                    Color(hex: "fc9afb"), Color(hex: "9b6cb0"),
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-
-                    Text(chatStore.settings.selectedPersona.rawValue)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                // Settings button
+                // Settings button on the right
                 Button(action: { showingSettings = true }) {
                     Image(systemName: "gearshape.fill")
                         .font(.title3)
@@ -101,12 +89,49 @@ private struct ChatHeaderView: View {
                 }
                 .accessibilityLabel("Open settings")
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 5) // Adjust for status bar
+        .padding(.bottom, 10)
+        .background(
+            // Transparent Blue Overlay
+            LinearGradient(
+                gradient: Gradient(colors: [Color.mix(.teal, .white, ratio: 0.4), Color.mix(.teal, .white, ratio: 0.3),
+                    Color.mix(.teal, .white, ratio: 0.1)]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .background(.ultraThinMaterial) // Frosted glass effect
         .sheet(isPresented: $showingSettings) {
             SettingsSheet()
         }
+    }
+}
+
+extension Color {
+    static func mix(_ color1: Color, _ color2: Color, ratio: CGFloat) -> Color {
+        let r = Double(ratio)
+        return Color(
+            red: (1 - r) * color1.components.red + r * color2.components.red,
+            green: (1 - r) * color1.components.green + r * color2.components.green,
+            blue: (1 - r) * color1.components.blue + r * color2.components.blue
+        )
+    }
+
+    // Helper to extract RGBA components
+    var components: (red: Double, green: Double, blue: Double, opacity: Double) {
+        #if os(iOS)
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return (Double(r), Double(g), Double(b), Double(a))
+        #else
+        return (0, 0, 0, 1) // Add macOS support if needed
+        #endif
     }
 }
 
@@ -126,14 +151,14 @@ private struct AIStatusIndicator: View {
 
             Text(statusText)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.black)
         }
     }
 
     private var statusColor: Color {
         switch chatStore.currentState {
         case .activeChat:
-            return .green
+            return Color.green.opacity(1.0)
         case .aiThinking:
             return Color(hex: "fc9afb")
         case .streaming:
@@ -172,7 +197,9 @@ private struct MessagesList: View {
     var body: some View {
         ScrollViewReader { scrollViewProxy in
             ScrollView {
-                let sortedMessages = chatStore.messages.sorted { $0.timestamp < $1.timestamp }
+                let sortedMessages = chatStore.messages.sorted {
+                    $0.timestamp < $1.timestamp
+                }
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(sortedMessages) { message in
                         MessageBubbleView(
@@ -184,23 +211,27 @@ private struct MessagesList: View {
                         )
                         .id(message.id)
                     }
-                    
+
                     // AI typing bubble when thinking
                     if chatStore.currentState == .aiThinking {
                         TypingBubbleView()
                             .id("live_response")
                     }
-                    
+
                     // Streaming content when AI is responding
-                    if chatStore.currentState == .streaming && !chatStore.streamingContent.isEmpty {
-                        StreamingMessageView(content: chatStore.streamingContent)
-                            .id("live_response")
+                    if chatStore.currentState == .streaming
+                        && !chatStore.streamingContent.isEmpty
+                    {
+                        StreamingMessageView(
+                            content: chatStore.streamingContent
+                        )
+                        .id("live_response")
                     }
-                    
-                    Color.clear.frame(height: 80).id("bottom_padding")
+
+                    Color.clear.frame(height: 16).id("bottom_padding")
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 20)
+                .padding(.top, 4)
             }
             .onChange(of: chatStore.messages.count) { _, _ in
                 withAnimation {
@@ -210,14 +241,20 @@ private struct MessagesList: View {
             .onChange(of: chatStore.streamingContent) { _, _ in
                 if !chatStore.streamingContent.isEmpty {
                     withAnimation {
-                        scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
+                        scrollViewProxy.scrollTo(
+                            "bottom_padding",
+                            anchor: .bottom
+                        )
                     }
                 }
             }
             .onChange(of: chatStore.currentState) { _, newState in
                 if newState == .aiThinking || newState == .streaming {
                     withAnimation {
-                        scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
+                        scrollViewProxy.scrollTo(
+                            "bottom_padding",
+                            anchor: .bottom
+                        )
                     }
                 }
             }
@@ -228,7 +265,6 @@ private struct MessagesList: View {
         .scrollDismissesKeyboard(.interactively)
     }
 }
-
 
 @available(iOS 26.0, *)
 private struct MessageBubbleView: View {
@@ -377,27 +413,20 @@ private struct InputPanel: View {
     @State private var isVoiceRecording = false
 
     var body: some View {
-        GlassEffectContainer(
-            cornerRadius: 0,
-            blurRadius: 10,
-            opacity: 0.4
-        ) {
-            VStack(spacing: 12) {
-                MessageInputField(
-                    messageText: $messageText,
-                    isVoiceRecording: isVoiceRecording,
-                    isTextFieldFocused: $isTextFieldFocused,
-                    shouldShowMicButton: shouldShowMicButton,
-                    canSendMessage: canSendMessage,
-                    sendMessage: sendMessage,
-                    startVoiceRecording: startVoiceRecording
-                )
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+
+        VStack(spacing: 12) {
+            MessageInputField(
+                messageText: $messageText,
+                isVoiceRecording: isVoiceRecording,
+                isTextFieldFocused: $isTextFieldFocused,
+                shouldShowMicButton: shouldShowMicButton,
+                canSendMessage: canSendMessage,
+                sendMessage: sendMessage,
+                startVoiceRecording: startVoiceRecording
+            )
         }
         .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+        .padding(.vertical, 4)
         .onChange(of: chatStore.currentState) { _, newState in
             isVoiceRecording = (newState == .voiceListening)
         }
@@ -405,19 +434,22 @@ private struct InputPanel: View {
             isVoiceRecording = recording
         }
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var shouldShowMicButton: Bool {
-        return !isTextFieldFocused && messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return !isTextFieldFocused
+            && messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty
     }
-    
+
     private var canSendMessage: Bool {
-        return !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return !messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
     }
-    
+
     // MARK: - Actions
-    
+
     private func startVoiceRecording() {
         print("🎤 [InputPanel] Voice recording button tapped")
         if isVoiceRecording {
@@ -425,22 +457,22 @@ private struct InputPanel: View {
             chatStore.stopVoiceRecording()
         } else {
             print("▶️ [InputPanel] Starting voice recording")
-            isTextFieldFocused = false // Dismiss keyboard
+            isTextFieldFocused = false  // Dismiss keyboard
             chatStore.startVoiceRecording()
         }
     }
 
     private func sendMessage() {
         print("📤 [InputPanel] Send button tapped with text: '\(messageText)'")
-        guard canSendMessage else { 
+        guard canSendMessage else {
             print("⚠️ [InputPanel] Cannot send empty message")
-            return 
+            return
         }
 
         let textToSend = messageText
         messageText = ""
         isTextFieldFocused = false
-        
+
         Task {
             await chatStore.sendMessage(textToSend)
         }
@@ -456,64 +488,102 @@ struct MessageInputField: View {
 
     let sendMessage: () -> Void
     let startVoiceRecording: () -> Void
-    
+
     @State private var textHeight: CGFloat = 44
     private let minHeight: CGFloat = 44
-    private let maxHeight: CGFloat = 120
+    private let maxHeight: CGFloat = 100
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            ZStack(alignment: .topLeading) {
-                // Hidden Text for height calculation
-                Text(messageText.isEmpty ? " " : messageText)
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(GeometryReader { geometry in
-                        Color.clear.onAppear {
-                            let newHeight = max(minHeight, min(maxHeight, geometry.size.height))
-                            if abs(textHeight - newHeight) > 1 {
-                                withAnimation(.easeOut(duration: 0.2)) {
-                                    textHeight = newHeight
+        ZStack {
+            // Main text field container with unified background
+            HStack(spacing: 0) {
+                // Text field with internal scrolling
+                ScrollViewReader { scrollProxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        TextField(
+                            isVoiceRecording ? "Listening..." : "Ask anything",
+                            text: $messageText,
+                            axis: .vertical
+                        )
+                        .focused($isTextFieldFocused)
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .lineLimit(nil)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .submitLabel(.send)
+                        .onSubmit {
+                            if !messageText.trimmingCharacters(
+                                in: .whitespacesAndNewlines
+                            ).isEmpty {
+                                sendMessage()
+                            }
+                        }
+                        .tint(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .id("textfield")
+                        .onChange(of: messageText) { _, _ in
+                            // Auto-scroll to bottom when typing
+                            if textHeight >= maxHeight {
+                                withAnimation(.easeOut(duration: 0.1)) {
+                                    scrollProxy.scrollTo("textfield", anchor: .bottom)
                                 }
                             }
                         }
-                    })
-                    .opacity(0)
-                
-                TextField(
-                    isVoiceRecording ? "Listening..." : "Ask anything",
-                    text: $messageText,
-                    axis: .vertical
-                )
-                .focused($isTextFieldFocused)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .frame(minHeight: textHeight)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: min(textHeight / 2, 22)))
-                .submitLabel(.send)
-                .onSubmit {
-                    if !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        sendMessage()
                     }
+                    .frame(maxHeight: textHeight)
                 }
-                .tint(.white)
+                .padding(.leading, 16)
+                .padding(.vertical, 12)
+                .padding(.trailing, 44) // Space for button
             }
+            .background(
+                // Hidden text for height calculation
+                GeometryReader { geometry in
+                    Text(messageText.isEmpty ? " " : messageText)
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color.clear)
+                        .onAppear {
+                            updateHeight(from: geometry)
+                        }
+                        .onChange(of: messageText) { _, _ in
+                            updateHeight(from: geometry)
+                        }
+                        .opacity(0)
+                }
+            )
+            .background(
+                .ultraThinMaterial,
+                in: RoundedRectangle(cornerRadius: min(textHeight / 2, 22))
+            )
             
-            if shouldShowMicButton {
-                MicButton(
-                    isRecording: isVoiceRecording,
-                    startVoiceRecording: startVoiceRecording
-                )
-            } else {
-                SendButton(
-                    canSendMessage: canSendMessage,
-                    sendMessage: sendMessage
-                )
+            // Integrated button on the right
+            HStack {
+                Spacer()
+                if shouldShowMicButton {
+                    IntegratedMicButton(
+                        isRecording: isVoiceRecording,
+                        startVoiceRecording: startVoiceRecording
+                    )
+                } else {
+                    IntegratedSendButton(
+                        canSendMessage: canSendMessage,
+                        sendMessage: sendMessage
+                    )
+                }
             }
+            .padding(.trailing, 8)
         }
         .fixedSize(horizontal: false, vertical: true)
+    }
+    
+    private func updateHeight(from geometry: GeometryProxy) {
+        let newHeight = max(minHeight, min(maxHeight, geometry.size.height))
+        if abs(textHeight - newHeight) > 1 {
+            withAnimation(.easeOut(duration: 0.15)) {
+                textHeight = newHeight
+            }
+        }
     }
 }
 
@@ -528,18 +598,24 @@ struct MicButton: View {
                 .foregroundStyle(
                     isRecording
                         ? AnyShapeStyle(.red)
-                        : AnyShapeStyle(LinearGradient(
-                            colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
+                        : AnyShapeStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "fc9afb"), Color(hex: "9b6cb0"),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                 )
                 .frame(width: 36, height: 36)
                 .background(.ultraThinMaterial, in: Circle())
                 .scaleEffect(isRecording ? 1.1 : 1.0)
                 .animation(.easeInOut(duration: 0.2), value: isRecording)
         }
-        .accessibilityLabel(isRecording ? "Stop recording" : "Start voice recording")
+        .accessibilityLabel(
+            isRecording ? "Stop recording" : "Start voice recording"
+        )
     }
 }
 
@@ -553,10 +629,14 @@ struct SendButton: View {
                 .font(.title3)
                 .foregroundStyle(
                     canSendMessage
-                        ? AnyShapeStyle(LinearGradient(
-                            colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing)
+                        ? AnyShapeStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "fc9afb"), Color(hex: "9b6cb0"),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
                         : AnyShapeStyle(.secondary)
                 )
@@ -568,6 +648,66 @@ struct SendButton: View {
     }
 }
 
+// MARK: - Integrated Buttons
+
+struct IntegratedMicButton: View {
+    let isRecording: Bool
+    let startVoiceRecording: () -> Void
+
+    var body: some View {
+        Button(action: startVoiceRecording) {
+            Image(systemName: isRecording ? "stop.circle.fill" : "mic.fill")
+                .font(.title3)
+                .foregroundStyle(
+                    isRecording
+                        ? AnyShapeStyle(.red)
+                        : AnyShapeStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "fc9afb"), Color(hex: "9b6cb0"),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .frame(width: 32, height: 32)
+                .scaleEffect(isRecording ? 1.1 : 1.0)
+                .animation(.easeInOut(duration: 0.2), value: isRecording)
+        }
+        .accessibilityLabel(
+            isRecording ? "Stop recording" : "Start voice recording"
+        )
+    }
+}
+
+struct IntegratedSendButton: View {
+    let canSendMessage: Bool
+    let sendMessage: () -> Void
+
+    var body: some View {
+        Button(action: sendMessage) {
+            Image(systemName: "arrow.up.circle.fill")
+                .font(.title3)
+                .foregroundStyle(
+                    canSendMessage
+                        ? AnyShapeStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "fc9afb"), Color(hex: "9b6cb0"),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        : AnyShapeStyle(.secondary)
+                )
+                .frame(width: 32, height: 32)
+        }
+        .disabled(!canSendMessage)
+        .accessibilityLabel("Send message")
+    }
+}
 
 // MARK: - Context Menu & Reactions
 
@@ -715,7 +855,7 @@ private struct SettingsSheet: View {
 @available(iOS 26.0, *)
 private struct TypingBubbleView: View {
     @State private var animationPhase = 0
-    
+
     var body: some View {
         ChatBubble(isUser: false, timestamp: Date()) {
             HStack(spacing: 8) {
@@ -729,9 +869,12 @@ private struct TypingBubbleView: View {
                         .opacity(
                             animationPhase == index ? 1.0 : 0.6
                         )
-                        .animation(.easeInOut(duration: 0.4), value: animationPhase)
+                        .animation(
+                            .easeInOut(duration: 0.4),
+                            value: animationPhase
+                        )
                 }
-                
+
                 // Add some spacing to make it look more like a message
                 Spacer().frame(width: 20)
             }
@@ -744,7 +887,7 @@ private struct TypingBubbleView: View {
         }
         .accessibilityLabel("AI is typing")
     }
-    
+
     private func startTypingAnimation() {
         Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
             withAnimation(.easeInOut(duration: 0.4)) {
