@@ -217,7 +217,7 @@ struct ChatSettings: Codable {
 
 struct ConversationSession: Identifiable, Codable {
     let id: UUID
-    let title: String
+    var title: String
     let createdAt: Date
     var lastModified: Date
     var messages: [ChatMessage]

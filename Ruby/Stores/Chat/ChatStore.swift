@@ -23,6 +23,7 @@ class ChatStore {
     
     // MARK: - Private Properties
     private var languageSession: LanguageModelSession?
+    private var titleGenerationSession: LanguageModelSession?
     private var audioEngine = AVAudioEngine()
     private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -85,6 +86,10 @@ class ChatStore {
         // Auto-create session if this is the first user message
         if currentSession == nil && messages.filter({ $0.isUser }).count == 1 {
             createSessionFromCurrentMessages()
+            // Start async title generation in background after session creation
+            Task.detached { [weak self] in
+                await self?.generateAndUpdateTitleAsync()
+            }
         }
         
         print("🤖 [ChatStore] Starting AI response generation")
@@ -151,8 +156,14 @@ class ChatStore {
         } else if let session = currentSession {
             var updatedSession = session
             updatedSession.messages = messages
-            // lastModified will be set in saveSession()
+            
+            // Don't block saving with title generation - do it async after save
             saveSession(updatedSession)
+            
+            // Generate title in background after saving
+            Task.detached { [weak self] in
+                await self?.generateAndUpdateTitleAsync()
+            }
         }
         
         // Start a fresh session
@@ -185,6 +196,134 @@ class ChatStore {
         settings.selectedPersona = persona
         // Reset session to apply new persona
         languageSession = LanguageModelSession()
+    }
+    
+    func regenerateSessionTitle() {
+        // Start async title generation
+        Task.detached { [weak self] in
+            await self?.generateAndUpdateTitleAsync()
+        }
+    }
+    
+    // MARK: - Async Title Generation
+    
+    @MainActor
+    private func generateAndUpdateTitleAsync() async {
+        guard let session = currentSession else { return }
+        
+        print("🏷️ [ChatStore] Starting async title generation for session: \(session.id)")
+        
+        // Generate title in background without blocking
+        let newTitle = await generateAITitleAsync()
+        
+        // Update session with new title
+        var updatedSession = session
+        updatedSession.title = newTitle
+        currentSession = updatedSession
+        
+        // Update in saved sessions array
+        if let index = savedSessions.firstIndex(where: { $0.id == session.id }) {
+            savedSessions[index] = updatedSession
+        }
+        
+        saveCurrentSession()
+        print("✅ [ChatStore] Async title generation completed: '\(newTitle)'")
+    }
+    
+    private func generateAITitleAsync() async -> String {
+        // Initialize title generation session if needed
+        if titleGenerationSession == nil {
+            titleGenerationSession = LanguageModelSession()
+        }
+        
+        guard let titleSession = titleGenerationSession else {
+            print("❌ [ChatStore] No title generation session available")
+            return generateFallbackTitle()
+        }
+        
+        // Find messages for context
+        let userMessages = messages.filter({ $0.isUser }).prefix(3)
+        let aiMessages = messages.filter({ !$0.isUser }).prefix(3)
+        
+        guard !userMessages.isEmpty else {
+            return "New Conversation"
+        }
+        
+        // Create conversation context
+        var conversationContext = ""
+        let allMessages = (Array(userMessages) + Array(aiMessages)).sorted { $0.timestamp < $1.timestamp }
+        
+        for message in allMessages.prefix(6) {
+            let sender = message.isUser ? "User" : "AI"
+            conversationContext += "\(sender): \(message.content)\n"
+        }
+        
+        let titlePrompt = """
+        Based on this conversation, generate a concise, descriptive title that captures the main topic or theme:
+        
+        \(conversationContext)
+        
+        Requirements:
+        - 3-6 words maximum
+        - Descriptive and specific to the conversation content
+        - Avoid generic words like "conversation", "chat", "discussion"
+        - Focus on the main subject matter or theme
+        
+        Examples: "Travel Planning", "Recipe Help", "Career Advice", "Math Homework"
+        """
+        
+        do {
+            print("🔄 [ChatStore] Sending async title generation request...")
+            let titleResponse = try await titleSession.respond(
+                to: titlePrompt,
+                generating: SessionTitle.self
+            )
+            
+            let generatedTitle = titleResponse.content.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            print("📝 [ChatStore] Async AI responded with title: '\(generatedTitle)' (confidence: \(titleResponse.content.confidence))")
+            
+            // Use AI title if it's good quality
+            if titleResponse.content.confidence >= 0.5 && generatedTitle.count <= 50 && !generatedTitle.isEmpty {
+                return generatedTitle
+            } else if generatedTitle.count > 50 {
+                return String(generatedTitle.prefix(47)) + "..."
+            }
+        } catch {
+            print("❌ [ChatStore] Async title generation failed: \(error.localizedDescription)")
+        }
+        
+        return generateFallbackTitle()
+    }
+    
+    private func generateFallbackTitle() -> String {
+        let userMessages = messages.filter({ $0.isUser }).prefix(2)
+        
+        guard let firstUserMessage = userMessages.first else {
+            return "New Conversation"
+        }
+        
+        let content = firstUserMessage.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Extract key topics/themes from the message
+        let words = content.split(separator: " ").map { String($0) }
+        let stopWords = Set(["i", "me", "my", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "can", "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by"])
+        
+        let significantWords = words.filter { word in
+            word.count > 2 && !stopWords.contains(word.lowercased())
+        }.prefix(4)
+        
+        if !significantWords.isEmpty {
+            let title = significantWords.joined(separator: " ")
+            return title.count > 40 ? String(title.prefix(37)) + "..." : title
+        }
+        
+        // Final fallback
+        if content.count <= 30 {
+            return content.isEmpty ? "New Conversation" : content
+        }
+        
+        return String(content.prefix(30)) + "..."
     }
     
     // MARK: - Private Methods
@@ -670,8 +809,9 @@ class ChatStore {
         messages = session.messages
         settings.selectedPersona = session.persona
         
-        if messages.isEmpty {
-            // Add default therapeutic greeting message
+        // Only add default greeting for truly empty new sessions, not saved sessions
+        if messages.isEmpty && session.messages.isEmpty {
+            // Add default therapeutic greeting message for new sessions only
             let defaultMessage = ChatMessage(
                 content: "Hi there, I'm here to listen and support you. What's on your mind today? Feel free to share whatever you're feeling or experiencing.",
                 isUser: false,
@@ -713,8 +853,11 @@ class ChatStore {
         // Use the timestamp of the last message as the initial lastModified
         let lastMessageTime = messages.last?.timestamp ?? Date()
         
+        // Start with a simple fallback title - AI title will be generated async
+        let temporaryTitle = generateFallbackTitle()
+        
         let session = ConversationSession(
-            title: generateSessionTitle(),
+            title: temporaryTitle,
             createdAt: messages.first?.timestamp ?? Date(),
             lastModified: lastMessageTime,
             messages: messages,
@@ -726,104 +869,6 @@ class ChatStore {
         saveCurrentSession()
     }
     
-    private func generateSessionTitle() -> String {
-        // Find the first few messages to generate title from context
-        let userMessages = messages.filter({ $0.isUser }).prefix(2)
-        let aiMessages = messages.filter({ !$0.isUser }).prefix(2)
-        
-        guard !userMessages.isEmpty else {
-            return "New Conversation"
-        }
-        
-        // Try LLM-based title generation first
-        if let aiTitle = generateAITitle(from: userMessages, aiMessages: aiMessages) {
-            return aiTitle
-        }
-        
-        // Fallback to simple approach for first user message
-        let firstUserMessage = userMessages.first!
-        let content = firstUserMessage.content.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        if content.count <= 30 {
-            return content.isEmpty ? "New Conversation" : content
-        }
-        
-        // For longer messages, create a smart summary
-        let words = content.split(separator: " ")
-        let selectedWords = words.prefix(6)
-        let title = selectedWords.joined(separator: " ")
-        return title.count > 40 ? String(title.prefix(37)) + "..." : title
-    }
-    
-    private func generateAITitle(from userMessages: ArraySlice<ChatMessage>, aiMessages: ArraySlice<ChatMessage>) -> String? {
-        guard let languageSession = languageSession else { return nil }
-        
-        // Create conversation context for title generation
-        var conversationContext = ""
-        let allMessages = (Array(userMessages) + Array(aiMessages)).sorted { $0.timestamp < $1.timestamp }
-        
-        for message in allMessages.prefix(4) {
-            let sender = message.isUser ? "User" : "AI"
-            conversationContext += "\(sender): \(message.content)\n"
-        }
-        
-        let titlePrompt = """
-        Based on this conversation, generate a concise, descriptive title that captures the main topic or theme:
-        
-        \(conversationContext)
-        
-        Requirements:
-        - 3-6 words maximum
-        - Descriptive and specific to the conversation content
-        - Avoid generic words like "conversation", "chat", "discussion"
-        - Focus on the main subject matter or theme
-        
-        Examples of good titles:
-        - "Travel Plans Discussion" → "Paris Trip Planning"
-        - "Recipe Help" → "Chocolate Cake Recipe"
-        - "Career Advice" → "Job Interview Tips"
-        - "Math Problem Solving" → "Calculus Homework Help"
-        """
-        
-        // Use async task but return quickly with timeout
-        let semaphore = DispatchSemaphore(value: 0)
-        var result: String?
-        
-        Task {
-            do {
-                let titleResponse = try await languageSession.respond(
-                    to: titlePrompt,
-                    generating: SessionTitle.self
-                )
-                
-                let generatedTitle = titleResponse.content.title.trimmingCharacters(in: .whitespacesAndNewlines)
-                
-                // Only use AI title if confidence is reasonable and title isn't too long
-                if titleResponse.content.confidence >= 0.6 && generatedTitle.count <= 50 {
-                    result = generatedTitle
-                } else if generatedTitle.count > 50 {
-                    result = String(generatedTitle.prefix(47)) + "..."
-                } else {
-                    result = nil // Low confidence, fall back to default
-                }
-                
-                print("✅ [ChatStore] Generated AI title: '\(generatedTitle)' (confidence: \(titleResponse.content.confidence))")
-            } catch {
-                print("❌ [ChatStore] Failed to generate AI title: \(error)")
-                result = nil
-            }
-            semaphore.signal()
-        }
-        
-        // Wait up to 3 seconds for AI response
-        let timeout = DispatchTime.now() + .seconds(3)
-        if semaphore.wait(timeout: timeout) == .success {
-            return result?.isEmpty == false ? result : nil
-        }
-        
-        print("⏰ [ChatStore] AI title generation timed out, using fallback")
-        return nil
-    }
     
     func exportConversations() -> Data? {
         do {
