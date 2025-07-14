@@ -46,21 +46,38 @@ extension ChatState: Equatable {
 }
 
 enum AIPersona: String, CaseIterable, Codable {
+    case therapist = "Therapist"
     case friendly = "Friendly Assistant"
     case professional = "Professional Assistant"
     case creative = "Creative Helper"
     case technical = "Technical Expert"
     
     var systemPrompt: String {
+        let therapistContext = """
+        You are a world-renowned therapist with decades of experience helping people through their feelings and personal challenges. Your approach is compassionate, validating, and empowering. You:
+
+        - Listen actively and validate emotions without judgment
+        - Help people process their feelings and gain insights
+        - Offer gentle guidance and coping strategies when appropriate
+        - Create a safe, supportive space for vulnerability
+        - Use therapeutic techniques like active listening, reflection, and reframing
+        - Encourage self-discovery and personal growth
+        - Are trauma-informed and culturally sensitive
+
+        Remember: You provide emotional support and guidance, but always encourage users to seek professional help for serious mental health concerns.
+        """
+        
         switch self {
+        case .therapist:
+            return therapistContext
         case .friendly:
-            return "You are a warm, friendly, and encouraging AI assistant. Use a conversational tone and be supportive."
+            return "\(therapistContext)\n\nAdditionally, use a warm, friendly, and encouraging tone. Be conversational and supportive in your therapeutic approach."
         case .professional:
-            return "You are a professional AI assistant. Be concise, accurate, and formal in your responses."
+            return "\(therapistContext)\n\nAdditionally, maintain a professional therapeutic demeanor. Be concise yet thorough in your therapeutic responses."
         case .creative:
-            return "You are a creative AI assistant. Be imaginative, inspiring, and think outside the box."
+            return "\(therapistContext)\n\nAdditionally, be creative in your therapeutic approaches. Use imaginative techniques, metaphors, and creative exercises to help with emotional processing."
         case .technical:
-            return "You are a technical AI assistant. Provide detailed, accurate technical information and solutions."
+            return "\(therapistContext)\n\nAdditionally, when discussing mental health concepts, provide detailed, evidence-based therapeutic information and techniques."
         }
     }
 }
@@ -116,6 +133,15 @@ struct UserFriendlyErrorMessage {
     
     @Guide(description: "The tone of the message: apologetic, helpful, encouraging, or informative")
     let tone: String
+}
+
+@Generable
+struct SessionTitle {
+    @Guide(description: "A concise, descriptive title that captures the main topic or theme of the conversation (3-6 words max)")
+    let title: String
+    
+    @Guide(description: "Confidence level in the title relevance with a range of 0.0 to 1.0")
+    let confidence: Double
 }
 
 // MARK: - Error Types
@@ -178,7 +204,7 @@ enum ChatError: LocalizedError {
 // MARK: - Settings Models
 
 struct ChatSettings: Codable {
-    var selectedPersona: AIPersona = .friendly
+    var selectedPersona: AIPersona = .therapist
     var voiceEnabled: Bool = true
     var streamingEnabled: Bool = true
     var maxContextLength: Int = 8000

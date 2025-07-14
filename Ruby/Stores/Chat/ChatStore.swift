@@ -48,10 +48,10 @@ class ChatStore {
             languageSession = LanguageModelSession()
             
             if messages.isEmpty {
-                print("👋 [ChatStore] Adding default Ruby greeting message")
-                // Add default Ruby greeting message
+                print("👋 [ChatStore] Adding default therapeutic greeting message")
+                // Add default therapeutic greeting message
                 let defaultMessage = ChatMessage(
-                    content: "Hey there, what do you want to talk about today?",
+                    content: "Hi there, I'm here to listen and support you. What's on your mind today? Feel free to share whatever you're feeling or experiencing.",
                     isUser: false,
                     timestamp: Date()
                 )
@@ -94,7 +94,7 @@ class ChatStore {
         if let session = currentSession {
             var updatedSession = session
             updatedSession.messages = messages
-            updatedSession.lastModified = Date()
+            // Only update lastModified when explicitly saving, not after every message
             currentSession = updatedSession
             saveCurrentSession()
         }
@@ -108,7 +108,7 @@ class ChatStore {
         }
         
         print("▶️ [ChatStore] Starting voice recording - changing state to voiceListening")
-        currentState = .voiceListening
+        self.currentState = .voiceListening
         isRecording = true
         currentInput = "" // Clear previous input
         
@@ -126,17 +126,11 @@ class ChatStore {
         
         print("🛑 [ChatStore] Stopping voice recording")
         isRecording = false
+        currentState = .activeChat  // Always reset to active chat first
         stopSpeechRecognition()
         
-        if !currentInput.isEmpty {
-            print("📤 [ChatStore] Sending transcribed message: '\(currentInput)'")
-            Task {
-                await sendMessage(currentInput)
-            }
-        } else {
-            print("🚫 [ChatStore] No input to send, returning to active chat")
-            currentState = .activeChat
-        }
+        // Don't automatically send the message - let user decide
+        print("✅ [ChatStore] Voice recording stopped, transcribed text available for user to send manually")
     }
     
     func startNewSession() {
@@ -150,6 +144,21 @@ class ChatStore {
         currentState = .activeChat
     }
     
+    func saveAndEndSession() {
+        // Save current session if it exists or create one if there are messages
+        if currentSession == nil && !messages.filter({ $0.isUser }).isEmpty {
+            createSessionFromCurrentMessages()
+        } else if let session = currentSession {
+            var updatedSession = session
+            updatedSession.messages = messages
+            // lastModified will be set in saveSession()
+            saveSession(updatedSession)
+        }
+        
+        // Start a fresh session
+        startNewSession()
+    }
+    
     func addReaction(to messageId: UUID, reaction: String) {
         if let index = messages.firstIndex(where: { $0.id == messageId }) {
             if !messages[index].reactions.contains(reaction) {
@@ -161,9 +170,9 @@ class ChatStore {
     func deleteMessage(with id: UUID) {
         messages.removeAll { $0.id == id }
         if messages.isEmpty {
-            // Add default Ruby greeting message
+            // Add default therapeutic greeting message
             let defaultMessage = ChatMessage(
-                content: "Hey there, what do you want to talk about today?",
+                content: "Hi there, I'm here to listen and support you. What's on your mind today? Feel free to share whatever you're feeling or experiencing.",
                 isUser: false,
                 timestamp: Date()
             )
@@ -612,18 +621,23 @@ class ChatStore {
     
     func saveCurrentSession() {
         guard let session = currentSession else { return }
-        saveSession(session)
+        var sessionToSave = session
+        sessionToSave.lastModified = Date() // Update lastModified only when actually saving
+        currentSession = sessionToSave
+        saveSession(sessionToSave)
     }
     
     func saveSession(_ session: ConversationSession) {
         Task {
             do {
-                try dataManager.saveSession(session)
+                var sessionToSave = session
+                sessionToSave.lastModified = Date() // Ensure lastModified is current when saving
+                try dataManager.saveSession(sessionToSave)
                 // Update the session in savedSessions array
-                if let index = savedSessions.firstIndex(where: { $0.id == session.id }) {
-                    savedSessions[index] = session
+                if let index = savedSessions.firstIndex(where: { $0.id == sessionToSave.id }) {
+                    savedSessions[index] = sessionToSave
                 } else {
-                    savedSessions.insert(session, at: 0)
+                    savedSessions.insert(sessionToSave, at: 0)
                 }
             } catch {
                 print("Failed to save session: \(error)")
@@ -648,7 +662,7 @@ class ChatStore {
         if let current = currentSession, !messages.isEmpty {
             var updatedCurrent = current
             updatedCurrent.messages = messages
-            updatedCurrent.lastModified = Date()
+            // lastModified will be set in saveSession()
             saveSession(updatedCurrent)
         }
         
@@ -657,9 +671,9 @@ class ChatStore {
         settings.selectedPersona = session.persona
         
         if messages.isEmpty {
-            // Add default Ruby greeting message
+            // Add default therapeutic greeting message
             let defaultMessage = ChatMessage(
-                content: "Hey there, what do you want to talk about today?",
+                content: "Hi there, I'm here to listen and support you. What's on your mind today? Feel free to share whatever you're feeling or experiencing.",
                 isUser: false,
                 timestamp: Date()
             )
@@ -667,7 +681,7 @@ class ChatStore {
         }
         currentState = .activeChat
         
-        // Update the session in savedSessions array
+        // Update the session in savedSessions array (don't modify lastModified when just loading)
         if let index = savedSessions.firstIndex(where: { $0.id == session.id }) {
             savedSessions[index] = session
         }
@@ -696,10 +710,13 @@ class ChatStore {
     func createSessionFromCurrentMessages() {
         guard !messages.isEmpty else { return }
         
+        // Use the timestamp of the last message as the initial lastModified
+        let lastMessageTime = messages.last?.timestamp ?? Date()
+        
         let session = ConversationSession(
             title: generateSessionTitle(),
             createdAt: messages.first?.timestamp ?? Date(),
-            lastModified: Date(),
+            lastModified: lastMessageTime,
             messages: messages,
             persona: settings.selectedPersona
         )
@@ -710,37 +727,102 @@ class ChatStore {
     }
     
     private func generateSessionTitle() -> String {
-        // Find the first user message to generate title from
-        guard let firstUserMessage = messages.first(where: { $0.isUser }) else {
+        // Find the first few messages to generate title from context
+        let userMessages = messages.filter({ $0.isUser }).prefix(2)
+        let aiMessages = messages.filter({ !$0.isUser }).prefix(2)
+        
+        guard !userMessages.isEmpty else {
             return "New Conversation"
         }
         
+        // Try LLM-based title generation first
+        if let aiTitle = generateAITitle(from: userMessages, aiMessages: aiMessages) {
+            return aiTitle
+        }
+        
+        // Fallback to simple approach for first user message
+        let firstUserMessage = userMessages.first!
         let content = firstUserMessage.content.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // If message is very short, use it as-is
         if content.count <= 30 {
             return content.isEmpty ? "New Conversation" : content
         }
         
         // For longer messages, create a smart summary
         let words = content.split(separator: " ")
+        let selectedWords = words.prefix(6)
+        let title = selectedWords.joined(separator: " ")
+        return title.count > 40 ? String(title.prefix(37)) + "..." : title
+    }
+    
+    private func generateAITitle(from userMessages: ArraySlice<ChatMessage>, aiMessages: ArraySlice<ChatMessage>) -> String? {
+        guard let languageSession = languageSession else { return nil }
         
-        // Try to find meaningful words (skip common words)
-        let commonWords = Set(["the", "is", "are", "was", "were", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "how", "what", "when", "where", "why", "can", "could", "would", "should"])
+        // Create conversation context for title generation
+        var conversationContext = ""
+        let allMessages = (Array(userMessages) + Array(aiMessages)).sorted { $0.timestamp < $1.timestamp }
         
-        let meaningfulWords = words.filter { !commonWords.contains($0.lowercased()) }
-        
-        if meaningfulWords.count >= 3 {
-            // Use first 3-4 meaningful words
-            let selectedWords = meaningfulWords.prefix(4)
-            let title = selectedWords.joined(separator: " ")
-            return title.count > 40 ? String(title.prefix(37)) + "..." : title
-        } else {
-            // Fallback to first words if not enough meaningful words
-            let selectedWords = words.prefix(6)
-            let title = selectedWords.joined(separator: " ")
-            return title.count > 40 ? String(title.prefix(37)) + "..." : title
+        for message in allMessages.prefix(4) {
+            let sender = message.isUser ? "User" : "AI"
+            conversationContext += "\(sender): \(message.content)\n"
         }
+        
+        let titlePrompt = """
+        Based on this conversation, generate a concise, descriptive title that captures the main topic or theme:
+        
+        \(conversationContext)
+        
+        Requirements:
+        - 3-6 words maximum
+        - Descriptive and specific to the conversation content
+        - Avoid generic words like "conversation", "chat", "discussion"
+        - Focus on the main subject matter or theme
+        
+        Examples of good titles:
+        - "Travel Plans Discussion" → "Paris Trip Planning"
+        - "Recipe Help" → "Chocolate Cake Recipe"
+        - "Career Advice" → "Job Interview Tips"
+        - "Math Problem Solving" → "Calculus Homework Help"
+        """
+        
+        // Use async task but return quickly with timeout
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: String?
+        
+        Task {
+            do {
+                let titleResponse = try await languageSession.respond(
+                    to: titlePrompt,
+                    generating: SessionTitle.self
+                )
+                
+                let generatedTitle = titleResponse.content.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // Only use AI title if confidence is reasonable and title isn't too long
+                if titleResponse.content.confidence >= 0.6 && generatedTitle.count <= 50 {
+                    result = generatedTitle
+                } else if generatedTitle.count > 50 {
+                    result = String(generatedTitle.prefix(47)) + "..."
+                } else {
+                    result = nil // Low confidence, fall back to default
+                }
+                
+                print("✅ [ChatStore] Generated AI title: '\(generatedTitle)' (confidence: \(titleResponse.content.confidence))")
+            } catch {
+                print("❌ [ChatStore] Failed to generate AI title: \(error)")
+                result = nil
+            }
+            semaphore.signal()
+        }
+        
+        // Wait up to 3 seconds for AI response
+        let timeout = DispatchTime.now() + .seconds(3)
+        if semaphore.wait(timeout: timeout) == .success {
+            return result?.isEmpty == false ? result : nil
+        }
+        
+        print("⏰ [ChatStore] AI title generation timed out, using fallback")
+        return nil
     }
     
     func exportConversations() -> Data? {
