@@ -59,7 +59,7 @@ struct MainChatBotView: View {
             handleAppTermination()
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Ruby AI Chatbot")
+        .accessibilityLabel("Lotus AI Chatbot")
     }
     
     // MARK: - Computed Properties

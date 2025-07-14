@@ -58,7 +58,7 @@ private struct ChatHeaderView: View {
         ZStack {
             // 1. Center Title and Subtitle
             VStack(spacing: 2) {
-                Text("Ruby")
+                Text("Lotus")
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundStyle(
                         LinearGradient(

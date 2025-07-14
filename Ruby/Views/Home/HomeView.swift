@@ -70,7 +70,7 @@ struct HomeView: View {
                             
                             // Main welcome text
                             VStack(spacing: 8) {
-                                Text("Ruby AI")
+                                Text("Lotus AI")
                                     .font(.system(size: 32, weight: .medium, design: .rounded))
                                     .foregroundStyle(
                                         LinearGradient(
