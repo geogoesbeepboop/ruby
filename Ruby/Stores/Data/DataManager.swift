@@ -206,12 +206,26 @@ final class DataManager {
         try saveSettings(exportData.settings)
     }
     
-    private func deleteAllSessions() throws {
+    func deleteAllSessions() throws {
         let descriptor = FetchDescriptor<PersistedChatSession>()
         let sessions = try modelContext.fetch(descriptor)
         
         for session in sessions {
             modelContext.delete(session)
+        }
+        
+        try modelContext.save()
+    }
+    
+    func clearAllData() throws {
+        try deleteAllSessions()
+        
+        // Also clear settings and reset to defaults
+        let predicate = #Predicate<PersistedChatSettings> { $0.id == "default" }
+        let descriptor = FetchDescriptor<PersistedChatSettings>(predicate: predicate)
+        
+        if let settings = try modelContext.fetch(descriptor).first {
+            modelContext.delete(settings)
         }
         
         try modelContext.save()

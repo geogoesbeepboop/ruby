@@ -53,6 +53,7 @@ struct ActiveChatStateView: View {
 private struct ChatHeaderView: View {
     @Environment(ChatStore.self) private var chatStore
     @State private var showingSettings = false
+    @State private var showingChatHistory = false
 
     var body: some View {
         ZStack {
@@ -76,8 +77,13 @@ private struct ChatHeaderView: View {
 
             // 2. Align Buttons to the Sides
             HStack {
-                // AI Status Indicator on the left
-                AIStatusIndicator() // Assuming this is a custom view you have
+                // Chat History Menu on the left (replacing AI Status Indicator)
+                Button(action: { showingChatHistory = true }) {
+                    Image(systemName: "ellipsis")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Open chat history")
 
                 Spacer()
 
@@ -105,6 +111,9 @@ private struct ChatHeaderView: View {
         .background(.ultraThinMaterial) // Frosted glass effect
         .sheet(isPresented: $showingSettings) {
             SettingsSheet()
+        }
+        .sheet(isPresented: $showingChatHistory) {
+            ChatHistorySheet()
         }
     }
 }
@@ -411,6 +420,7 @@ private struct InputPanel: View {
     @Binding var messageText: String
     @FocusState.Binding var isTextFieldFocused: Bool
     @State private var isVoiceRecording = false
+    @State private var realTimeTranscription = ""
 
     var body: some View {
 
@@ -432,6 +442,18 @@ private struct InputPanel: View {
         }
         .onChange(of: chatStore.isRecording) { _, recording in
             isVoiceRecording = recording
+            if !recording {
+                realTimeTranscription = ""
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("VoiceTranscriptionUpdate"))) { notification in
+            if let transcription = notification.object as? String {
+                realTimeTranscription = transcription
+                // Update the message text with real-time transcription during recording
+                if isVoiceRecording {
+                    messageText = transcription
+                }
+            }
         }
     }
 
@@ -497,43 +519,47 @@ struct MessageInputField: View {
         ZStack {
             // Main text field container with unified background
             HStack(spacing: 0) {
-                // Text field with internal scrolling
-                ScrollViewReader { scrollProxy in
-                    ScrollView(.vertical, showsIndicators: true) {
-                        TextField(
-                            isVoiceRecording ? "Listening..." : "Ask anything",
-                            text: $messageText,
-                            axis: .vertical
-                        )
-                        .focused($isTextFieldFocused)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .lineLimit(nil)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .submitLabel(.send)
-                        .onSubmit {
-                            if !messageText.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            ).isEmpty {
-                                sendMessage()
-                            }
-                        }
-                        .tint(.white)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .id("textfield")
-                        .onChange(of: messageText) { _, _ in
-                            // Auto-scroll to bottom when typing
-                            if textHeight >= maxHeight {
-                                withAnimation(.easeOut(duration: 0.1)) {
-                                    scrollProxy.scrollTo("textfield", anchor: .bottom)
-                                }
-                            }
+                // Text field with proper containment for select all bubble
+                ZStack(alignment: .topLeading) {
+                    TextField(
+                        isVoiceRecording ? "Listening..." : "Ask anything",
+                        text: $messageText,
+                        axis: .vertical
+                    )
+                    .focused($isTextFieldFocused)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .lineLimit(nil)
+                    .textFieldStyle(PlainTextFieldStyle())
+                    .submitLabel(.send)
+                    .onSubmit {
+                        if !messageText.trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        ).isEmpty {
+                            sendMessage()
                         }
                     }
-                    .frame(maxHeight: textHeight)
+                    .tint(.white)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .frame(minHeight: minHeight - 24, maxHeight: maxHeight - 24)
+                    .padding(.leading, 16)
+                    .padding(.vertical, 12)
+                    .padding(.trailing, 44)
+                    .clipped() // Ensure select all bubble stays within bounds
+                    .contentShape(Rectangle()) // Proper hit testing
+                    
+                    // Invisible overlay to ensure proper text positioning
+                    if messageText.isEmpty {
+                        HStack {
+                            Text("Ask anything")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.gray.opacity(0.6))
+                                .padding(.leading, 16)
+                                .padding(.vertical, 12)
+                            Spacer()
+                        }
+                        .allowsHitTesting(false)
+                    }
                 }
-                .padding(.leading, 16)
-                .padding(.vertical, 12)
-                .padding(.trailing, 44) // Space for button
             }
             .background(
                 // Hidden text for height calculation
@@ -905,6 +931,177 @@ extension DateFormatter {
         formatter.timeStyle = .short
         return formatter
     }()
+}
+
+// MARK: - Chat History Sheet
+
+@available(iOS 26.0, *)
+private struct ChatHistorySheet: View {
+    @Environment(ChatStore.self) private var chatStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    @State private var showingDeleteAlert = false
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // Background with blur effect for inactive area
+                MaterialBackground(intensity: 0.8)
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    // Search bar
+                    SearchBar(text: $searchText)
+                        .padding(.horizontal)
+                        .padding(.top)
+                    
+                    // Chat history list
+                    List {
+                        ForEach(filteredSessions, id: \.id) { session in
+                            ChatHistoryRow(
+                                session: session,
+                                onTap: {
+                                    Task {
+                                        await chatStore.loadSession(session)
+                                        dismiss()
+                                    }
+                                },
+                                onDelete: {
+                                    chatStore.deleteSession(session)
+                                }
+                            )
+                        }
+                        .listRowBackground(Color.clear)
+                    }
+                    .scrollContentBackground(.hidden)
+                    .listStyle(PlainListStyle())
+                }
+            }
+            .navigationTitle("Chat History")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Clear All") {
+                        showingDeleteAlert = true
+                    }
+                    .foregroundStyle(.red)
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundStyle(Color(hex: "fc9afb"))
+                }
+            }
+            .alert("Clear All Data", isPresented: $showingDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear All", role: .destructive) {
+                    // Clear all chat history
+                    for session in chatStore.savedSessions {
+                        chatStore.deleteSession(session)
+                    }
+                }
+            } message: {
+                Text("This will permanently delete all chat history. This action cannot be undone.")
+            }
+        }
+    }
+    
+    private var filteredSessions: [ConversationSession] {
+        if searchText.isEmpty {
+            return chatStore.savedSessions
+        } else {
+            return chatStore.savedSessions.filter { session in
+                session.title.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+}
+
+@available(iOS 26.0, *)
+private struct SearchBar: View {
+    @Binding var text: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            
+            TextField("Search conversations...", text: $text)
+                .textFieldStyle(PlainTextFieldStyle())
+            
+            if !text.isEmpty {
+                Button(action: { text = "" }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+@available(iOS 26.0, *)
+private struct ChatHistoryRow: View {
+    let session: ConversationSession
+    let onTap: () -> Void
+    let onDelete: () -> Void
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(truncatedTitle)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                
+                Text(session.lastMessage?.content ?? "No messages")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                
+                HStack {
+                    Text(session.lastModified, style: .relative)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    
+                    Spacer()
+                    
+                    Text("\(session.messageCount) messages")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            
+            Spacer()
+            
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .foregroundStyle(.red)
+                    .font(.caption)
+            }
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap()
+        }
+        .swipeActions(edge: .trailing) {
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+        }
+    }
+    
+    private var truncatedTitle: String {
+        if session.title.count > 40 {
+            return String(session.title.prefix(40)) + "..."
+        }
+        return session.title
+    }
 }
 
 // MARK: - Preview

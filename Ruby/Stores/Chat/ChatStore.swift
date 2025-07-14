@@ -82,8 +82,22 @@ class ChatStore {
         currentInput = ""
         currentState = .aiThinking
         
+        // Auto-create session if this is the first user message
+        if currentSession == nil && messages.filter({ $0.isUser }).count == 1 {
+            createSessionFromCurrentMessages()
+        }
+        
         print("🤖 [ChatStore] Starting AI response generation")
         await generateAIResponse(to: text)
+        
+        // Update session after each interaction
+        if let session = currentSession {
+            var updatedSession = session
+            updatedSession.messages = messages
+            updatedSession.lastModified = Date()
+            currentSession = updatedSession
+            saveCurrentSession()
+        }
     }
     
     func startVoiceRecording() {
@@ -512,6 +526,11 @@ class ChatStore {
                 print("📝 [ChatStore] Speech recognition result: '\(transcription)'")
                 DispatchQueue.main.async {
                     self.currentInput = transcription
+                    // Update real-time transcription for the text field
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("VoiceTranscriptionUpdate"),
+                        object: transcription
+                    )
                 }
             }
             
@@ -593,10 +612,19 @@ class ChatStore {
     
     func saveCurrentSession() {
         guard let session = currentSession else { return }
-        
+        saveSession(session)
+    }
+    
+    func saveSession(_ session: ConversationSession) {
         Task {
             do {
                 try dataManager.saveSession(session)
+                // Update the session in savedSessions array
+                if let index = savedSessions.firstIndex(where: { $0.id == session.id }) {
+                    savedSessions[index] = session
+                } else {
+                    savedSessions.insert(session, at: 0)
+                }
             } catch {
                 print("Failed to save session: \(error)")
                 lastError = .saveFailed
@@ -616,6 +644,14 @@ class ChatStore {
     }
     
     func loadSession(_ session: ConversationSession) async {
+        // Save current session before switching if there are unsaved changes
+        if let current = currentSession, !messages.isEmpty {
+            var updatedCurrent = current
+            updatedCurrent.messages = messages
+            updatedCurrent.lastModified = Date()
+            saveSession(updatedCurrent)
+        }
+        
         currentSession = session
         messages = session.messages
         settings.selectedPersona = session.persona
@@ -630,6 +666,11 @@ class ChatStore {
             messages.append(defaultMessage)
         }
         currentState = .activeChat
+        
+        // Update the session in savedSessions array
+        if let index = savedSessions.firstIndex(where: { $0.id == session.id }) {
+            savedSessions[index] = session
+        }
         
         // Reinitialize language session with new persona
         languageSession = LanguageModelSession()
@@ -669,11 +710,37 @@ class ChatStore {
     }
     
     private func generateSessionTitle() -> String {
-        if let firstMessage = messages.first(where: { $0.isUser }) {
-            let words = firstMessage.content.split(separator: " ").prefix(5)
-            return String(words.joined(separator: " "))
+        // Find the first user message to generate title from
+        guard let firstUserMessage = messages.first(where: { $0.isUser }) else {
+            return "New Conversation"
         }
-        return "New Conversation"
+        
+        let content = firstUserMessage.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // If message is very short, use it as-is
+        if content.count <= 30 {
+            return content.isEmpty ? "New Conversation" : content
+        }
+        
+        // For longer messages, create a smart summary
+        let words = content.split(separator: " ")
+        
+        // Try to find meaningful words (skip common words)
+        let commonWords = Set(["the", "is", "are", "was", "were", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "how", "what", "when", "where", "why", "can", "could", "would", "should"])
+        
+        let meaningfulWords = words.filter { !commonWords.contains($0.lowercased()) }
+        
+        if meaningfulWords.count >= 3 {
+            // Use first 3-4 meaningful words
+            let selectedWords = meaningfulWords.prefix(4)
+            let title = selectedWords.joined(separator: " ")
+            return title.count > 40 ? String(title.prefix(37)) + "..." : title
+        } else {
+            // Fallback to first words if not enough meaningful words
+            let selectedWords = words.prefix(6)
+            let title = selectedWords.joined(separator: " ")
+            return title.count > 40 ? String(title.prefix(37)) + "..." : title
+        }
     }
     
     func exportConversations() -> Data? {
@@ -694,6 +761,22 @@ class ChatStore {
             } catch {
                 print("Failed to import data: \(error)")
                 lastError = .loadFailed
+            }
+        }
+    }
+    
+    func clearAllData() {
+        Task {
+            do {
+                try dataManager.clearAllData()
+                // Reset in-memory state
+                savedSessions.removeAll()
+                currentSession = nil
+                startNewSession()
+                settings = ChatSettings.default
+            } catch {
+                print("Failed to clear data: \(error)")
+                lastError = .saveFailed
             }
         }
     }
