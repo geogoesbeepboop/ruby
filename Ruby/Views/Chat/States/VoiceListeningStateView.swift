@@ -137,8 +137,8 @@ private struct PulseRing: View {
             .stroke(
                 LinearGradient(
                     colors: [
-                        Color(hex: "fc9afb").opacity(opacity),
-                        Color(hex: "9b6cb0").opacity(opacity * 0.5)
+                        Color.brandPrimary.opacity(opacity),
+                        Color.brandSecondary.opacity(opacity * 0.5)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -178,7 +178,7 @@ private struct MicrophoneButton: View {
                     .fill(
                         RadialGradient(
                             colors: [
-                                Color(hex: "fc9afb").opacity(glowOpacity),
+                                Color.brandPrimary.opacity(glowOpacity),
                                 Color.clear
                             ],
                             center: .center,
@@ -199,7 +199,7 @@ private struct MicrophoneButton: View {
                         .font(.system(size: 40, weight: .medium))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                                colors: [Color.brandPrimary, Color.brandSecondary],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -207,7 +207,7 @@ private struct MicrophoneButton: View {
                         .frame(width: 100, height: 100)
                 }
                 .shadow(
-                    color: Color(hex: "fc9afb").opacity(0.4),
+                    color: Color.brandPrimary.opacity(0.4),
                     radius: 20,
                     x: 0,
                     y: 10
@@ -352,7 +352,7 @@ private struct VoiceControlButtons: View {
                             .font(.title2)
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                                    colors: [Color.brandPrimary, Color.brandSecondary],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -391,8 +391,8 @@ private struct VoiceParticleField: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(hex: "fc9afb").opacity(particle.opacity),
-                                Color(hex: "9b6cb0").opacity(particle.opacity * 0.5)
+                                Color.brandPrimary.opacity(particle.opacity),
+                                Color.brandSecondary.opacity(particle.opacity * 0.5)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing

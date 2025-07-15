@@ -17,24 +17,24 @@ struct ChatHistoryRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(truncatedTitle)
                     .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
                     .lineLimit(1)
                 
                 Text(session.lastMessage?.content ?? "No messages")
                     .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.black)
                     .lineLimit(2)
                 
                 HStack {
                     Text(session.lastModified, style: .relative)
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.black)
                     
                     Spacer()
                     
                     Text("\(session.messageCount) messages")
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.black)
                 }
             }
             

@@ -9,6 +9,7 @@ struct ActiveChatStateView: View {
     @State private var selectedMessageId: UUID?
     @State private var showingReactionPicker = false
     @FocusState private var isTextFieldFocused: Bool
+    @State private var keyboardHeight: CGFloat = 0
 
     var body: some View {
         GeometryReader { geometry in
@@ -25,10 +26,14 @@ struct ActiveChatStateView: View {
                     // Messages list with proper spacing
                     MessagesList(
                         selectedMessageId: $selectedMessageId,
-                        showingReactionPicker: $showingReactionPicker
+                        showingReactionPicker: $showingReactionPicker,
+                        isTextFieldFocused: isTextFieldFocused
                     )
                     .layoutPriority(1)  // Give priority to messages area
                     .clipped()  // Prevent overflow
+                    // Add bottom padding when keyboard is visible to ensure last message is visible
+//                    .padding(.bottom, isTextFieldFocused ? 60 : 0)
+                    .animation(.easeOut(duration: 0.25), value: isTextFieldFocused)
 
                     // Input panel
                     InputPanel(
@@ -44,88 +49,13 @@ struct ActiveChatStateView: View {
                 .presentationDetents([.height(200)])
                 .presentationDragIndicator(.visible)
         }
-    }
-}
-
-// MARK: - Chat Header
-
-@available(iOS 26.0, *)
-private struct ChatHeaderView: View {
-    @Environment(ChatStore.self) private var chatStore
-    @State private var showingSettings = false
-    @State private var showingChatHistory = false
-
-    var body: some View {
-        ZStack {
-            // 1. Center Title and Subtitle
-            VStack(spacing: 2) {
-                Text("Lotus")
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: "fc9afb"), Color(hex: "9b6cb0"),
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                Text(chatStore.settings.selectedPersona.rawValue)
-                    .font(.caption)
-                    .foregroundStyle(.black)
-            }
-
-            // 2. Align Buttons to the Sides
-            HStack {
-                // Chat History Menu on the left (replacing AI Status Indicator)
-                Button(action: { showingChatHistory = true }) {
-                    Image(systemName: "ellipsis")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("Open chat history")
-
-                Spacer()
-
-                // Save session button
-                if chatStore.currentSession != nil || !chatStore.messages.filter({ $0.isUser }).isEmpty {
-                    Button(action: { 
-                        chatStore.saveAndEndSession()
-                    }) {
-                        Image(systemName: "checkmark.circle")
-                            .font(.title3)
-                            .foregroundStyle(Color(hex: "fc9afb"))
-                    }
-                    .accessibilityLabel("Save and end session")
-                }
-
-                // Settings button on the right
-                Button(action: { showingSettings = true }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("Open settings")
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                keyboardHeight = keyboardFrame.height
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 5) // Adjust for status bar
-        .padding(.bottom, 10)
-        .background(
-            // Transparent Blue Overlay
-            LinearGradient(
-                gradient: Gradient(colors: [Color.mix(.teal, .white, ratio: 0.4), Color.mix(.teal, .white, ratio: 0.3),
-                    Color.mix(.teal, .white, ratio: 0.1)]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .background(.ultraThinMaterial) // Frosted glass effect
-        .sheet(isPresented: $showingSettings) {
-            SettingsSheet()
-        }
-        .sheet(isPresented: $showingChatHistory) {
-            ChatHistorySheet()
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
         }
     }
 }
@@ -139,6 +69,8 @@ extension Color {
             blue: (1 - r) * color1.components.blue + r * color2.components.blue
         )
     }
+    
+    // Legacy Ruby colors moved to LotusColors.swift theme file
 
     // Helper to extract RGBA components
     var components: (red: Double, green: Double, blue: Double, opacity: Double) {

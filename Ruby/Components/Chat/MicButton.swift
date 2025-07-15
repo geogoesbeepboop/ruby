@@ -20,7 +20,7 @@ struct MicButton: View {
                         : AnyShapeStyle(
                             LinearGradient(
                                 colors: [
-                                    Color(hex: "fc9afb"), Color(hex: "9b6cb0"),
+                                    Color.brandPrimary, Color.brandSecondary,
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing

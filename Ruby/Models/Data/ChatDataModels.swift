@@ -35,7 +35,7 @@ final class PersistedChatSession {
             createdAt: createdAt,
             lastModified: lastModified,
             messages: messages.map { $0.toChatMessage() },
-            persona: AIPersona(rawValue: persona) ?? .friendly
+            persona: AIPersona(rawValue: persona) ?? .therapist
         )
     }
 }
@@ -103,7 +103,7 @@ final class PersistedChatSettings {
     var lastModified: Date
     
     init(
-        selectedPersona: String = AIPersona.friendly.rawValue,
+        selectedPersona: String = AIPersona.therapist.rawValue,
         voiceEnabled: Bool = true,
         streamingEnabled: Bool = true,
         maxContextLength: Int = 8000,
@@ -120,7 +120,7 @@ final class PersistedChatSettings {
     // Convert to domain model
     func toChatSettings() -> ChatSettings {
         ChatSettings(
-            selectedPersona: AIPersona(rawValue: selectedPersona) ?? .friendly,
+            selectedPersona: AIPersona(rawValue: selectedPersona) ?? .therapist,
             voiceEnabled: voiceEnabled,
             streamingEnabled: streamingEnabled,
             maxContextLength: maxContextLength,

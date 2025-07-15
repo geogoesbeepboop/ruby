@@ -26,11 +26,6 @@ struct MessageBubbleView: View {
                 if !message.reactions.isEmpty {
                     ReactionRow(reactions: message.reactions)
                 }
-
-                // Metadata (for AI messages)
-                if !message.isUser, let metadata = message.metadata {
-                    MessageMetadataView(metadata: metadata)
-                }
             }
         }
         .contextMenu {

@@ -4,7 +4,7 @@ This document describes the comprehensive SwiftUI view files created for the mul
 
 ## Overview
 
-The chatbot interface consists of five main state views and a container view that manages transitions between states. All views use the glassmorphic design system with the lavender/pink color palette (#f7e6ff, #fc9afb, #9b6cb0).
+The chatbot interface consists of five main state views and a container view that manages transitions between states. All views use the glassmorphic design system with the lavender/pink color palette (#f7e6ff, #fc9afb, #b016f7).
 
 ## View Files Created
 
@@ -123,7 +123,7 @@ All views utilize the existing glassmorphic components:
 The implementation consistently uses the specified color palette:
 
 - **Primary**: `#fc9afb` (Bright Pink)
-- **Secondary**: `#9b6cb0` (Purple)
+- **Secondary**: `#b016f7` (Purple)
 - **Background**: `#f7e6ff` (Light Lavender)
 
 Colors are applied through:

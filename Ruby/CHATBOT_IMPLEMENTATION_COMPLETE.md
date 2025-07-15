@@ -50,7 +50,7 @@ Ruby/
 
 ### Color Palette
 - **Primary Background**: `#f7e6ff` (Lavender Blush)
-- **Accent Gradient**: `#fc9afb` → `#9b6cb0` (Pink Orchid → Purple Plum)
+- **Accent Gradient**: `#fc9afb` → `#b016f7` (Pink Orchid → Purple Plum)
 - **Design Language**: Glassmorphism + Neumorphism hybrid
 
 ### Key Components
@@ -252,7 +252,7 @@ Users can customize:
 ### Advanced Configuration
 ```swift
 struct ChatSettings: Codable {
-    var selectedPersona: AIPersona = .friendly
+    var selectedPersona: AIPersona = therapist
     var voiceEnabled: Bool = true
     var streamingEnabled: Bool = true
     var maxContextLength: Int = 8000

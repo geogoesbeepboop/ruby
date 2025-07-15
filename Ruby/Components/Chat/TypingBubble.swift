@@ -11,14 +11,15 @@ struct TypingBubbleView: View {
     @State private var animationPhase = 0
 
     var body: some View {
-        ChatBubble(isUser: false, timestamp: Date()) {
-            HStack(spacing: 8) {
+        HStack {
+            // Compact thinking bubble without ChatBubble wrapper
+            HStack(spacing: 6) {
                 ForEach(0..<3) { index in
                     Circle()
-                        .fill(Color(hex: "9b6cb0"))
-                        .frame(width: 8, height: 8)
+                        .fill(Color.brandSecondary)
+                        .frame(width: 6, height: 6)
                         .scaleEffect(
-                            animationPhase == index ? 1.4 : 0.8
+                            animationPhase == index ? 1.2 : 0.8
                         )
                         .opacity(
                             animationPhase == index ? 1.0 : 0.6
@@ -28,12 +29,24 @@ struct TypingBubbleView: View {
                             value: animationPhase
                         )
                 }
-
-                // Add some spacing to make it look more like a message
-                Spacer().frame(width: 20)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+            .background {
+                // Compact AI bubble background
+                LinearGradient(
+                    colors: [
+                        Color.primary.opacity(0.2),
+                        Color.primary.opacity(0.2),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .frame(maxWidth: 80) // Keep it compact
+            
+            Spacer()
         }
         .id("typing")
         .onAppear {
@@ -49,4 +62,10 @@ struct TypingBubbleView: View {
             }
         }
     }
+}
+
+@available(iOS 26.0, *)
+#Preview {
+    TypingBubbleView()
+        .environment(ChatStore())
 }

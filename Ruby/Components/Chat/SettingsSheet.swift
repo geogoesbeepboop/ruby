@@ -21,7 +21,7 @@ struct SettingsSheet: View {
                             Spacer()
                             if chatStore.settings.selectedPersona == persona {
                                 Image(systemName: "checkmark")
-                                    .foregroundStyle(Color(hex: "fc9afb"))
+                                    .foregroundStyle(Color.brandPrimary)
                             }
                         }
                         .contentShape(Rectangle())

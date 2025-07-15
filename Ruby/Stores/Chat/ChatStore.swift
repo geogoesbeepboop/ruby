@@ -32,12 +32,23 @@ class ChatStore {
     private var waveformTimer: Timer?
     private let dataManager = DataManager.shared
     
+    // MARK: - Enhanced Services
+    private let personaContextService = PersonaContextService()
+    private let intentToolManager = IntentToolManager.shared
+    
     // MARK: - Initialization
     
     init() {
         setupAudioSession()
         requestPermissions()
         loadPersistedData()
+        
+        // Connect this ChatStore instance to the shared managers
+        ChatStoreManager.shared.chatStore = self
+        SettingsManager.shared.chatStore = self
+        
+        // Set up automatic saving when app goes to background
+        setupBackgroundSaving()
     }
     
     // MARK: - Public Methods
@@ -52,7 +63,7 @@ class ChatStore {
                 print("👋 [ChatStore] Adding default therapeutic greeting message")
                 // Add default therapeutic greeting message
                 let defaultMessage = ChatMessage(
-                    content: "Hi there, I'm here to listen and support you. What's on your mind today? Feel free to share whatever you're feeling or experiencing.",
+                    content: "Hi there! What's on your mind today?",
                     isUser: false,
                     timestamp: Date()
                 )
@@ -72,9 +83,16 @@ class ChatStore {
     
     func sendMessage(_ text: String) async {
         print("📤 [ChatStore] sendMessage called with text: '\(text)'")
+        print("📤 [ChatStore] Current message count before: \(messages.count)")
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { 
             print("⚠️ [ChatStore] Message is empty, ignoring")
             return 
+        }
+        
+        // Check if we're already processing a message to prevent duplicates
+        guard currentState != .aiThinking && currentState != .streaming else {
+            print("⚠️ [ChatStore] Already processing a message, ignoring duplicate request")
+            return
         }
         
         print("✅ [ChatStore] Creating user message and adding to chat")
@@ -82,6 +100,17 @@ class ChatStore {
         messages.append(userMessage)
         currentInput = ""
         currentState = .aiThinking
+        
+        print("📤 [ChatStore] Message count after adding user message: \(messages.count)")
+        
+        // Immediately save user message to prevent data loss
+        if let session = currentSession {
+            var updatedSession = session
+            updatedSession.messages = messages
+            updatedSession.lastModified = Date()
+            currentSession = updatedSession
+            saveCurrentSessionSynchronously()
+        }
         
         // Auto-create session if this is the first user message
         if currentSession == nil && messages.filter({ $0.isUser }).count == 1 {
@@ -95,13 +124,17 @@ class ChatStore {
         print("🤖 [ChatStore] Starting AI response generation")
         await generateAIResponse(to: text)
         
-        // Update session after each interaction
+        print("📤 [ChatStore] Final message count: \(messages.count)")
+        
+        // Update session after each interaction - do this synchronously for better persistence
         if let session = currentSession {
             var updatedSession = session
             updatedSession.messages = messages
-            // Only update lastModified when explicitly saving, not after every message
+            updatedSession.lastModified = Date()
             currentSession = updatedSession
-            saveCurrentSession()
+            
+            // Save immediately to prevent data loss
+            saveCurrentSessionSynchronously()
         }
     }
     
@@ -183,7 +216,7 @@ class ChatStore {
         if messages.isEmpty {
             // Add default therapeutic greeting message
             let defaultMessage = ChatMessage(
-                content: "Hi there, I'm here to listen and support you. What's on your mind today? Feel free to share whatever you're feeling or experiencing.",
+                content: "Hi there! What's on your mind today?",
                 isUser: false,
                 timestamp: Date()
             )
@@ -342,7 +375,7 @@ class ChatStore {
             // Generate response based on analysis
             if settings.streamingEnabled {
                 print("🌊 [ChatStore] Using streaming response mode")
-                currentState = .streaming
+                // Keep thinking state until streaming actually starts
                 await generateStreamingResponse(input: input, analysis: analysis)
             } else {
                 print("📝 [ChatStore] Using complete response mode")
@@ -392,15 +425,28 @@ class ChatStore {
     }
     
     private func analyzeMessage(_ input: String) async throws -> MessageAnalysis {
+        print("🔍 [ChatStore] Analyzing message: '\(input)'")
+        
+        let availableTools = IntentToolManager.availableTools.map { tool in
+            "- \(tool.name): \(tool.description)"
+        }.joined(separator: "\n")
+        
         let prompt = """
-        Analyze this user message and determine the appropriate response characteristics:
+        Analyze this user message and determine if it requires tool usage or regular conversation:
         
         User message: "\(input)"
         
-        Consider the conversation context and provide analysis for response generation.
+        Available tools:
+        \(availableTools)
+        
+        Determine:
+        1. Intent: question, request, conversation, command, greeting
+        2. Sentiment: positive, neutral, negative
+        3. Response length needed: brief, detailed, comprehensive
+        4. Whether this requires tool usage (requiresTools: true/false)
         """
         
-        return try await languageSession?.respond(
+        let analysis = try await languageSession?.respond(
             to: prompt,
             generating: MessageAnalysis.self
         ).content ?? MessageAnalysis(
@@ -409,32 +455,46 @@ class ChatStore {
             responseLength: "brief",
             requiresTools: false
         )
+        
+        print("📊 [ChatStore] Message analysis result:")
+        print("📊 [ChatStore] - Intent: \(analysis.intent)")
+        print("📊 [ChatStore] - Sentiment: \(analysis.sentiment)")
+        print("📊 [ChatStore] - Response Length: \(analysis.responseLength)")
+        print("📊 [ChatStore] - Requires Tools: \(analysis.requiresTools)")
+        
+        return analysis
     }
     
     private func generateStreamingResponse(input: String, analysis: MessageAnalysis) async {
-        let systemPrompt = settings.selectedPersona.systemPrompt
-        let fullPrompt = """
-        \(systemPrompt)
+        print("🌊 [ChatStore] generateStreamingResponse started")
         
-        User intent: \(analysis.intent)
-        Sentiment: \(analysis.sentiment)
-        Preferred response length: \(analysis.responseLength)
-        
-        User message: "\(input)"
-        
-        Provide a helpful response matching the user's needs and the specified persona.
-        """
+        // Use the same enhanced prompt as complete response for consistency
+        let fullPrompt = await generateEnhancedPrompt(for: input, analysis: analysis)
         
         do {
+            let startTime = Date()
+            print("⏰ [ChatStore] Starting streaming request...")
+            
             let stream = languageSession?.streamResponse(
                 to: fullPrompt,
                 generating: ChatResponse.self
             )
             
             if let stream = stream {
+                print("🌊 [ChatStore] Streaming started successfully")
+                var hasStartedStreaming = false
                 for try await partial in stream {
-                    streamingContent = partial.content ?? "REPLACE THIS DEFAULT VALUE LATER"
+                    // Only switch to streaming state once we get first content
+                    if !hasStartedStreaming && !(partial.content?.isEmpty ?? true) {
+                        currentState = .streaming
+                        hasStartedStreaming = true
+                        print("🌊 [ChatStore] First token received, switching to streaming state")
+                    }
+                    streamingContent = partial.content ?? ""
                 }
+                
+                let processingTime = Date().timeIntervalSince(startTime)
+                print("✅ [ChatStore] Streaming completed in \(processingTime) seconds")
                 
                 // Create final message when streaming completes
                 let finalMessage = ChatMessage(
@@ -442,35 +502,52 @@ class ChatStore {
                     isUser: false,
                     timestamp: Date(),
                     metadata: ChatMessage.MessageMetadata(
-                        processingTime: nil,
+                        processingTime: processingTime,
                         tokens: streamingContent.split(separator: " ").count,
                         confidence: nil
                     )
                 )
                 
                 messages.append(finalMessage)
+                print("✅ [ChatStore] Streaming message added to chat")
                 streamingContent = ""
                 currentState = .activeChat
+                
+                // Immediately save the message to prevent data loss
+                if let session = currentSession {
+                    var updatedSession = session
+                    updatedSession.messages = messages
+                    updatedSession.lastModified = Date()
+                    currentSession = updatedSession
+                    saveCurrentSessionSynchronously()
+                }
+            } else {
+                print("❌ [ChatStore] Streaming session was nil")
+                await handleErrorWithAIMessage(.modelUnavailable)
             }
         } catch {
-            await fallbackToCompleteResponse(input: input, analysis: analysis)
+            print("❌ [ChatStore] Streaming failed: \(error.localizedDescription)")
+            await handleErrorWithAIMessage(.modelUnavailable)
         }
     }
     
     private func generateCompleteResponse(input: String, analysis: MessageAnalysis) async {
-        print("💬 [ChatStore] generateCompleteResponse started")
-        let systemPrompt = settings.selectedPersona.systemPrompt
-        let fullPrompt = """
-        \(systemPrompt)
+        print("💬 [ChatStore] ================================")
+        print("💬 [ChatStore] GENERATE COMPLETE RESPONSE STARTED")
+        print("💬 [ChatStore] Input: '\(input)'")
+        print("💬 [ChatStore] Current State: \(currentState)")
+        print("💬 [ChatStore] Message Count: \(messages.count)")
+        print("💬 [ChatStore] ================================")
         
-        User intent: \(analysis.intent)
-        Sentiment: \(analysis.sentiment)
-        Preferred response length: \(analysis.responseLength)
+        // Check if this requires tool calling first
+        if analysis.requiresTools {
+            print("🔧 [ChatStore] Redirecting to tool calling due to requiresTools=true")
+            await handleToolCallingRequest(input: input, analysis: analysis)
+            return
+        }
         
-        User message: "\(input)"
-        
-        Provide a helpful response matching the user's needs and the specified persona.
-        """
+        print("📝 [ChatStore] Proceeding with normal response generation")
+        let fullPrompt = await generateEnhancedPrompt(for: input, analysis: analysis)
         
         print("🔍 [ChatStore] Full prompt: \(fullPrompt)")
         
@@ -510,10 +587,6 @@ class ChatStore {
         }
     }
     
-    private func fallbackToCompleteResponse(input: String, analysis: MessageAnalysis) async {
-        currentState = .aiThinking
-        await generateCompleteResponse(input: input, analysis: analysis)
-    }
     
     private func handleContextWindowExceeded() async {
         // Summarize older messages and start fresh session
@@ -766,6 +839,33 @@ class ChatStore {
         saveSession(sessionToSave)
     }
     
+    private func saveCurrentSessionSynchronously() {
+        guard let session = currentSession else { return }
+        print("💾 [ChatStore] Saving session synchronously with \(session.messages.count) messages")
+        
+        var sessionToSave = session
+        sessionToSave.lastModified = Date()
+        currentSession = sessionToSave
+        
+        // Save synchronously to prevent data loss
+        do {
+            try dataManager.saveSession(sessionToSave)
+            
+            // Update the session in savedSessions array
+            if let index = savedSessions.firstIndex(where: { $0.id == sessionToSave.id }) {
+                savedSessions[index] = sessionToSave
+            } else {
+                savedSessions.insert(sessionToSave, at: 0)
+            }
+            
+            print("✅ [ChatStore] Session saved successfully")
+        } catch {
+            print("❌ [ChatStore] Failed to save session synchronously: \(error)")
+            // Fallback to async save
+            saveSession(sessionToSave)
+        }
+    }
+    
     func saveSession(_ session: ConversationSession) {
         Task {
             do {
@@ -813,7 +913,7 @@ class ChatStore {
         if messages.isEmpty && session.messages.isEmpty {
             // Add default therapeutic greeting message for new sessions only
             let defaultMessage = ChatMessage(
-                content: "Hi there, I'm here to listen and support you. What's on your mind today? Feel free to share whatever you're feeling or experiencing.",
+                content: "Hi there! What's on your mind today?",
                 isUser: false,
                 timestamp: Date()
             )
@@ -905,6 +1005,179 @@ class ChatStore {
                 print("Failed to clear data: \(error)")
                 lastError = .saveFailed
             }
+        }
+    }
+    
+    // MARK: - Enhanced LLM Integration Methods
+    
+    private func generateEnhancedPrompt(for input: String, analysis: MessageAnalysis) async -> String {
+        print("🧾 [ChatStore] Generating enhanced prompt for: '\(input)'")
+        
+        let basePrompt = settings.selectedPersona.systemPrompt
+        
+        // Fetch relevant context for the persona with user input for better relevance
+        let contextItems = await personaContextService.getContextForPersona(settings.selectedPersona, userInput: input)
+        
+        var enhancedPrompt = basePrompt
+        
+        if !contextItems.isEmpty {
+            print("📚 [ChatStore] Adding \(contextItems.count) context items for persona: \(settings.selectedPersona)")
+            enhancedPrompt += "\n\nRelevant context for inspiration:\n"
+            for item in contextItems {
+                enhancedPrompt += "• \(item.content) - \(item.source)\n"
+            }
+            enhancedPrompt += "\nUse this context subtly to enrich your response when appropriate, but don't force it if it doesn't fit naturally.\n"
+        } else {
+            print("📚 [ChatStore] No context items available for persona: \(settings.selectedPersona)")
+        }
+        
+        enhancedPrompt += """
+        
+        User intent: \(analysis.intent)
+        Sentiment: \(analysis.sentiment)
+        Preferred response length: \(analysis.responseLength)
+        
+        User message: "\(input)"
+        
+        Provide a helpful response matching the user's needs and the specified persona.
+        """
+        
+        print("📝 [ChatStore] Enhanced prompt length: \(enhancedPrompt.count) characters")
+        
+        return enhancedPrompt
+    }
+    
+    private func handleToolCallingRequest(input: String, analysis: MessageAnalysis) async {
+        print("🔧 [ChatStore] ================================")
+        print("🔧 [ChatStore] TOOL CALLING REQUEST INITIATED")
+        print("🔧 [ChatStore] Input: '\(input)'")
+        print("🔧 [ChatStore] Analysis: \(analysis)")
+        print("🔧 [ChatStore] Current State: \(currentState)")
+        print("🔧 [ChatStore] ================================")
+        
+        // Analyze the input to determine which tool to call
+        let toolName = await identifyToolFromInput(input)
+        let parameters = await extractToolParameters(from: input, toolName: toolName)
+        
+        print("🔧 [ChatStore] Identified Tool: '\(toolName)'")
+        print("🔧 [ChatStore] Tool Parameters: \(parameters)")
+        
+        do {
+            let result = try await intentToolManager.executeIntent(toolName: toolName, parameters: parameters)
+            
+            print("✅ [ChatStore] Tool execution successful: \(result)")
+            
+            // Add system message showing the action was completed
+            let systemMessage = ChatMessage(
+                content: result,
+                isUser: false,
+                timestamp: Date()
+            )
+            messages.append(systemMessage)
+            currentState = .activeChat
+            
+            print("✅ [ChatStore] Tool calling completed successfully")
+            
+        } catch {
+            print("❌ [ChatStore] Tool execution failed: \(error.localizedDescription)")
+            print("❌ [ChatStore] Error details: \(error)")
+            
+            // Handle tool execution errors
+            let errorMessage = ChatMessage(
+                content: "I tried to perform that action, but encountered an issue: \(error.localizedDescription). Please try again or ask me to do something else.",
+                isUser: false,
+                timestamp: Date()
+            )
+            messages.append(errorMessage)
+            currentState = .activeChat
+        }
+        
+        print("🔧 [ChatStore] Tool calling request completed")
+    }
+    
+    private func identifyToolFromInput(_ input: String) async -> String {
+        let lowercasedInput = input.lowercased()
+        
+        // Simple pattern matching for common requests
+        if lowercasedInput.contains("go to") || lowercasedInput.contains("switch to") || lowercasedInput.contains("navigate to") {
+            if lowercasedInput.contains("chat") {
+                return "navigate_to_tab"
+            } else if lowercasedInput.contains("home") {
+                return "navigate_to_tab"
+            }
+        }
+        
+        if lowercasedInput.contains("new chat") || lowercasedInput.contains("start conversation") {
+            return "start_new_chat"
+        }
+        
+        if lowercasedInput.contains("change persona") || lowercasedInput.contains("switch to") {
+            return "change_persona"
+        }
+        
+        if lowercasedInput.contains("voice input") || lowercasedInput.contains("record") {
+            return "start_voice_input"
+        }
+        
+        // Default fallback
+        return "navigate_to_tab"
+    }
+    
+    private func extractToolParameters(from input: String, toolName: String) async -> [String: Any] {
+        let lowercasedInput = input.lowercased()
+        
+        switch toolName {
+        case "navigate_to_tab":
+            if lowercasedInput.contains("chat") {
+                return ["tab": "Chat"]
+            } else {
+                return ["tab": "Home"]
+            }
+        case "change_persona":
+            if lowercasedInput.contains("therapist") {
+                return ["persona": "Welcoming Therapist"]
+            } else if lowercasedInput.contains("professor") {
+                return ["persona": "Distinguished Professor"]
+            } else if lowercasedInput.contains("tech") {
+                return ["persona": "Tech Lead"]
+            } else if lowercasedInput.contains("musician") {
+                return ["persona": "World-Class Musician"]
+            } else if lowercasedInput.contains("comedian") {
+                return ["persona": "Wise Comedian"]
+            }
+            return ["persona": "Welcoming Therapist"]
+        default:
+            return [:]
+        }
+    }
+    
+    // MARK: - Public Tool Calling Interface
+    
+    func handleToolCall(toolName: String, parameters: [String: Any]) async {
+        await handleToolCallingRequest(input: "Tool call: \(toolName)", analysis: MessageAnalysis(intent: "command", sentiment: "neutral", responseLength: "brief", requiresTools: true))
+    }
+    
+    // MARK: - Background Saving
+    
+    private func setupBackgroundSaving() {
+        // Save when app goes to background
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("📱 [ChatStore] App going to background, saving session...")
+            self?.saveCurrentSessionSynchronously()
+        }
+        
+        // Save when app terminates
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("📱 [ChatStore] App terminating, saving session...")
+            self?.saveCurrentSessionSynchronously()
         }
     }
 }

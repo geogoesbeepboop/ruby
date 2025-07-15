@@ -123,7 +123,7 @@ private struct FloatingSettingsButton: View {
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                            colors: [Color.brandPrimary, Color.brandSecondary],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -200,7 +200,7 @@ private struct ErrorStateView: View {
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                                    colors: [Color.brandPrimary, Color.brandSecondary],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -356,7 +356,7 @@ private struct SettingsView: View {
                         }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
-                                    .foregroundStyle(Color(hex: "fc9afb"))
+                                    .foregroundStyle(Color.brandPrimary)
                                 Text("New Conversation")
                                     .foregroundStyle(.primary)
                                 Spacer()
@@ -386,7 +386,7 @@ private struct SettingsView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundStyle(Color(hex: "fc9afb"))
+                    .foregroundStyle(Color.brandPrimary)
                 }
             }
         }
@@ -417,7 +417,7 @@ private struct PersonaRow: View {
                 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color(hex: "fc9afb"))
+                        .foregroundStyle(Color.brandPrimary)
                 }
             }
             .padding(.vertical, 4)
@@ -447,7 +447,7 @@ private struct SettingsToggle: View {
             Spacer()
             
             Toggle("", isOn: $isOn)
-                .toggleStyle(SwitchToggleStyle(tint: Color(hex: "fc9afb")))
+                .toggleStyle(SwitchToggleStyle(tint: Color.brandPrimary))
         }
         .padding(.vertical, 4)
     }

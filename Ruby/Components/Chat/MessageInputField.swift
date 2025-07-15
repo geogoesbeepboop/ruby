@@ -52,18 +52,9 @@ struct MessageInputField: View {
                     .padding(.trailing, 44)
                     .clipped() // Ensure select all bubble stays within bounds
                     .contentShape(Rectangle()) // Proper hit testing
-                    
-                    // Invisible overlay to ensure proper text positioning
-                    if messageText.isEmpty {
-                        HStack {
-                            Text("Ask anything")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(.gray.opacity(0.6))
-                                .padding(.leading, 16)
-                                .padding(.vertical, 12)
-                            Spacer()
-                        }
-                        .allowsHitTesting(false)
+                    .onTapGesture {
+                        // Optimize input responsiveness
+                        isTextFieldFocused = true
                     }
                 }
             }
@@ -112,9 +103,12 @@ struct MessageInputField: View {
     
     private func updateHeight(from geometry: GeometryProxy) {
         let newHeight = max(minHeight, min(maxHeight, geometry.size.height))
-        if abs(textHeight - newHeight) > 1 {
-            withAnimation(.easeOut(duration: 0.15)) {
-                textHeight = newHeight
+        // Only update if there's a significant change to reduce unnecessary animations
+        if abs(textHeight - newHeight) > 2 {
+            DispatchQueue.main.async {
+                withAnimation(.easeOut(duration: 0.1)) {
+                    textHeight = newHeight
+                }
             }
         }
     }

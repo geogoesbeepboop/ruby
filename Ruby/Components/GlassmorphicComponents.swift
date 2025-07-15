@@ -67,7 +67,7 @@ struct MaterialBackground: View {
 
     init(
         colors: [Color] = [
-            Color(hex: "f7e6ff"), Color(hex: "fdb5fd"), Color(hex: "b794c7"),
+            Color.brandHighlight, Color.brandPrimary, Color.brandSecondary,
         ],
         intensity: Double = 1.0
     ) {
@@ -113,7 +113,7 @@ struct FloatingOrb: View {
 
     init(
         size: CGFloat = CGFloat.random(in: 20...80),
-        color: Color = Color(hex: "fc9afb").opacity(0.4),
+        color: Color = Color.brandPrimary.opacity(0.4),
         offset: CGSize,
         delay: Double
     ) {
@@ -202,9 +202,9 @@ struct AnimatedGradientText: View {
     var body: some View {
         LinearGradient(
             colors: [
-                Color(hex: "fc9afb"),
-                Color(hex: "9b6cb0"),
-                Color(hex: "fc9afb"),
+                Color.brandPrimary,
+                Color.brandSecondary,
+                Color.brandPrimary,
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -238,8 +238,8 @@ struct VoiceWaveform: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(hex: "fc9afb"),
-                                Color(hex: "9b6cb0"),
+                                Color.brandPrimary,
+                                Color.brandSecondary,
                             ],
                             startPoint: .bottom,
                             endPoint: .top
@@ -268,7 +268,7 @@ struct ThinkingDots: View {
         HStack(spacing: 8) {
             ForEach(0..<3) { index in
                 Circle()
-                    .fill(Color(hex: "9b6cb0"))
+                    .fill(Color.brandSecondary)
                     .frame(width: 8, height: 8)
                     .scaleEffect(
                         animationPhase == index ? 1.3 : 0.8

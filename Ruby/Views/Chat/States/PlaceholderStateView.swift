@@ -77,9 +77,9 @@ private struct FloatingOrbsLayer: View {
     
     private func orbColor(for index: Int) -> Color {
         let colors = [
-            Color(hex: "fc9afb").opacity(0.4),
-            Color(hex: "9b6cb0").opacity(0.3),
-            Color(hex: "f7e6ff").opacity(0.5)
+            Color.brandPrimary.opacity(0.4),
+            Color.brandSecondary.opacity(0.3),
+            Color.brandHighlight.opacity(0.5)
         ]
         return colors[index % colors.count]
     }
@@ -209,7 +209,7 @@ private struct TextInputField: View {
                         .font(.title2)
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                                colors: [Color.brandPrimary, Color.brandSecondary],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -241,7 +241,7 @@ private struct TextInputButton: View {
                     .font(.title2)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                            colors: [Color.brandPrimary, Color.brandSecondary],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -275,7 +275,7 @@ private struct VoiceInputButton: View {
                     .font(.title)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                            colors: [Color.brandPrimary, Color.brandSecondary],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -284,7 +284,7 @@ private struct VoiceInputButton: View {
                     .padding(22)
             }
             .shadow(
-                color: Color(hex: "fc9afb").opacity(0.3),
+                color: Color.brandPrimary.opacity(0.3),
                 radius: 15,
                 x: 0,
                 y: 5

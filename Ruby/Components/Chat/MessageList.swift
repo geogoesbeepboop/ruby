@@ -11,6 +11,7 @@ struct MessagesList: View {
     @Environment(ChatStore.self) private var chatStore
     @Binding var selectedMessageId: UUID?
     @Binding var showingReactionPicker: Bool
+    let isTextFieldFocused: Bool
 
     var body: some View {
         ScrollViewReader { scrollViewProxy in
@@ -52,13 +53,13 @@ struct MessagesList: View {
                 .padding(.top, 4)
             }
             .onChange(of: chatStore.messages.count) { _, _ in
-                withAnimation {
+                withAnimation(.easeOut(duration: 0.3)) {
                     scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
                 }
             }
             .onChange(of: chatStore.streamingContent) { _, _ in
                 if !chatStore.streamingContent.isEmpty {
-                    withAnimation {
+                    withAnimation(.easeOut(duration: 0.2)) {
                         scrollViewProxy.scrollTo(
                             "bottom_padding",
                             anchor: .bottom
@@ -67,17 +68,32 @@ struct MessagesList: View {
                 }
             }
             .onChange(of: chatStore.currentState) { _, newState in
+                // Auto-scroll immediately when entering AI thinking or streaming states
                 if newState == .aiThinking || newState == .streaming {
-                    withAnimation {
-                        scrollViewProxy.scrollTo(
-                            "bottom_padding",
-                            anchor: .bottom
-                        )
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            scrollViewProxy.scrollTo(
+                                "bottom_padding",
+                                anchor: .bottom
+                            )
+                        }
+                    }
+                }
+            }
+            .onChange(of: isTextFieldFocused) { _, focused in
+                // Scroll to show last message when keyboard appears
+                if focused {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
+                        }
                     }
                 }
             }
             .onAppear {
-                scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
+                }
             }
         }
         .scrollDismissesKeyboard(.interactively)

@@ -127,10 +127,10 @@ private struct ThinkingRing: View {
             .stroke(
                 LinearGradient(
                     colors: [
-                        Color(hex: "fc9afb").opacity(0.4),
-                        Color(hex: "9b6cb0").opacity(0.2),
-                        Color(hex: "f7e6ff").opacity(0.3),
-                        Color(hex: "fc9afb").opacity(0.4)
+                        Color.brandPrimary.opacity(0.4),
+                        Color.brandSecondary.opacity(0.2),
+                        Color.brandHighlight.opacity(0.3),
+                        Color.brandPrimary.opacity(0.4)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -164,7 +164,7 @@ private struct ThoughtBubble: View {
                         .font(.system(size: 32, weight: .medium))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                                colors: [Color.brandPrimary, Color.brandSecondary],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -176,7 +176,7 @@ private struct ThoughtBubble: View {
                 .frame(width: 80, height: 80)
             }
             .shadow(
-                color: Color(hex: "fc9afb").opacity(0.3),
+                color: Color.brandPrimary.opacity(0.3),
                 radius: 20,
                 x: 0,
                 y: 10
@@ -281,7 +281,7 @@ private struct ProcessingSteps: View {
                 VStack(spacing: 8) {
                     ZStack {
                         Circle()
-                            .fill(index <= activeStep ? Color(hex: "fc9afb").opacity(0.3) : Color.clear)
+                            .fill(index <= activeStep ? Color.brandPrimary.opacity(0.3) : Color.clear)
                             .frame(width: 40, height: 40)
                         
                         Image(systemName: step.1)
@@ -289,7 +289,7 @@ private struct ProcessingSteps: View {
                             .foregroundStyle(
                                 index <= activeStep ?
                                 LinearGradient(
-                                    colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                                    colors: [Color.brandPrimary, Color.brandSecondary],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ) :
@@ -343,7 +343,7 @@ private struct ProgressVisualization: View {
                     Rectangle()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                                colors: [Color.brandPrimary, Color.brandSecondary],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -441,8 +441,8 @@ private struct ThinkingParticleField: View {
                     .fill(
                         RadialGradient(
                             colors: [
-                                Color(hex: "fc9afb").opacity(opacity),
-                                Color(hex: "9b6cb0").opacity(opacity * 0.3),
+                                Color.brandPrimary.opacity(opacity),
+                                Color.brandSecondary.opacity(opacity * 0.3),
                                 Color.clear
                             ],
                             center: .center,

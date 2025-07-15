@@ -51,7 +51,7 @@
 //    
 //    func testPersonaChange() {
 //        let initialPersona = chatStore.settings.selectedPersona
-//        let newPersona: AIPersona = initialPersona == .friendly ? .professional : .friendly
+//        let newPersona: AIPersona = initialPersona == therapist ? .professional : therapist
 //        
 //        chatStore.updatePersona(newPersona)
 //        XCTAssertEqual(chatStore.settings.selectedPersona, newPersona)
@@ -225,7 +225,7 @@
 //    func testChatSettings() {
 //        let settings = ChatSettings.default
 //        
-//        XCTAssertEqual(settings.selectedPersona, .friendly)
+//        XCTAssertEqual(settings.selectedPersona, therapist)
 //        XCTAssertTrue(settings.voiceEnabled)
 //        XCTAssertTrue(settings.streamingEnabled)
 //        XCTAssertEqual(settings.maxContextLength, 8000)
@@ -233,7 +233,7 @@
 //    }
 //    
 //    func testPersonaSystemPrompts() {
-//        XCTAssertFalse(AIPersona.friendly.systemPrompt.isEmpty)
+//        XCTAssertFalse(AIPersonatherapist.systemPrompt.isEmpty)
 //        XCTAssertFalse(AIPersona.professional.systemPrompt.isEmpty)
 //        XCTAssertFalse(AIPersona.creative.systemPrompt.isEmpty)
 //        XCTAssertFalse(AIPersona.technical.systemPrompt.isEmpty)
@@ -244,7 +244,7 @@
 //    func testColorHexInitialization() {
 //        let lavenderBlush = Color(hex: "f7e6ff")
 //        let pinkOrchid = Color(hex: "fc9afb")
-//        let purplePlum = Color(hex: "9b6cb0")
+//        let purplePlum = Color(hex: "b016f7")
 //        
 //        // Test that colors can be created from hex values
 //        XCTAssertNotNil(lavenderBlush)
@@ -355,7 +355,7 @@
 //            createdAt: Date().addingTimeInterval(-3600),
 //            lastModified: Date(),
 //            messages: createSampleMessages(),
-//            persona: .friendly
+//            persona: therapist
 //        )
 //    }
 //}

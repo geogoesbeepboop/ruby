@@ -21,7 +21,7 @@ struct StreamingMessageView: View {
 
                 if cursorVisible {
                     Rectangle()
-                        .fill(Color(hex: "fc9afb"))
+                        .fill(Color.brandPrimary)
                         .frame(width: 2, height: 20)
                         .animation(
                             .easeInOut(duration: 0.5).repeatForever(

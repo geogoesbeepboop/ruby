@@ -25,7 +25,7 @@ struct ChatBubble<Content: View>: View {
                 GlassEffectContainer(
                     cornerRadius: 18,
                     blurRadius: 8,
-                    opacity: isUser ? 0.4 : 0.2
+                    opacity: isUser ? 0.6 : 0.2
                 ) {
                     content
                         .padding(.horizontal, 16)
@@ -33,10 +33,22 @@ struct ChatBubble<Content: View>: View {
                 }
                 .background {
                     if isUser {
+                        // Dark purple for user messages
                         LinearGradient(
                             colors: [
-                                Color(hex: "fc9afb").opacity(0.3),
-                                Color(hex: "9b6cb0").opacity(0.2),
+                                Color.brandSecondary.opacity(0.8),
+                                Color.brandSecondary.opacity(0.6),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    } else {
+                        // Dark gray for AI messages
+                        LinearGradient(
+                            colors: [
+                                Color.primary.opacity(0.2),
+                                Color.primary.opacity(0.2),
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -56,3 +68,18 @@ struct ChatBubble<Content: View>: View {
         .padding(.horizontal)
     }
 }
+
+@available(iOS 26.0, *)
+#Preview {
+    ChatBubble(isUser: false, timestamp: Date()) {
+        VStack(alignment: false ? .trailing : .leading, spacing: 8)
+        {
+            // Message content
+            Text("Hello")
+                .font(.system(size: 16, weight: .regular, design: .default))
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
+        }
+    }        .environment(ChatStore())
+}
+

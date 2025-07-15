@@ -13,21 +13,21 @@ struct HomeView: View {
                 // Floating orbs for ambient animation
                 FloatingOrb(
                     size: 60,
-                    color: Color(hex: "fc9afb").opacity(0.3),
+                    color: Color.brandPrimary.opacity(0.3),
                     offset: CGSize(width: -100, height: -200),
                     delay: 0
                 )
                 
                 FloatingOrb(
                     size: 40,
-                    color: Color(hex: "9b6cb0").opacity(0.4),
+                    color: Color.brandSecondary.opacity(0.4),
                     offset: CGSize(width: 120, height: 150),
                     delay: 1.5
                 )
                 
                 FloatingOrb(
                     size: 80,
-                    color: Color(hex: "f7e6ff").opacity(0.2),
+                    color: Color.brandHighlight.opacity(0.2),
                     offset: CGSize(width: -80, height: 300),
                     delay: 3.0
                 )
@@ -48,8 +48,8 @@ struct HomeView: View {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color(hex: "fc9afb").opacity(0.8),
-                                            Color(hex: "9b6cb0").opacity(0.6)
+                                            Color.brandPrimary.opacity(0.8),
+                                            Color.brandSecondary.opacity(0.6)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -57,7 +57,7 @@ struct HomeView: View {
                                 )
                                 .frame(width: 80, height: 80)
                                 .overlay {
-                                    Image(systemName: "heart.fill")
+                                    Image(systemName: "camera.macro.circle")
                                         .font(.system(size: 36, weight: .medium))
                                         .foregroundStyle(.white)
                                 }
@@ -74,7 +74,7 @@ struct HomeView: View {
                                     .font(.system(size: 32, weight: .medium, design: .rounded))
                                     .foregroundStyle(
                                         LinearGradient(
-                                            colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                                            colors: [Color.brandPrimary, Color.brandSecondary],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
@@ -118,7 +118,7 @@ struct HomeView: View {
                                 }
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: [Color(hex: "fc9afb"), Color(hex: "9b6cb0")],
+                                        colors: [Color.brandPrimary, Color.brandSecondary],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
@@ -155,6 +155,7 @@ struct HomeView: View {
 
 extension Notification.Name {
     static let switchToChatTab = Notification.Name("switchToChatTab")
+    static let switchToHomeTab = Notification.Name("switchToHomeTab")
 }
 
 // MARK: - Preview

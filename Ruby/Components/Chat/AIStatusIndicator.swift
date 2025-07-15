@@ -31,9 +31,9 @@ struct AIStatusIndicator: View {
         case .activeChat:
             return Color.green.opacity(1.0)
         case .aiThinking:
-            return Color(hex: "fc9afb")
+            return Color.brandPrimary
         case .streaming:
-            return Color(hex: "9b6cb0")
+            return Color.brandSecondary
         case .voiceListening:
             return .blue
         case .error:

@@ -49,7 +49,7 @@ struct MainContainerView: View {
             }
             .tag(Tab.chat)
         }
-        .tint(Color(hex: "fc9afb"))
+        .tint(Color.brandPrimary)
         .onAppear {
             // Customize tab bar appearance with glass effect
             setupTabBarAppearance()
@@ -72,9 +72,9 @@ struct MainContainerView: View {
             .foregroundColor: UIColor.systemGray
         ]
         
-        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(Color(hex: "fc9afb"))
+        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(Color.brandPrimary)
         appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
-            .foregroundColor: UIColor(Color(hex: "fc9afb"))
+            .foregroundColor: UIColor(Color.brandPrimary)
         ]
         
         UITabBar.appearance().standardAppearance = appearance

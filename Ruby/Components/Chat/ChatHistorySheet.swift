@@ -62,7 +62,7 @@ struct ChatHistorySheet: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundStyle(Color(hex: "fc9afb"))
+                    .foregroundStyle(Color.brandPrimary)
                 }
             }
             .alert("Clear All Data", isPresented: $showingDeleteAlert) {
