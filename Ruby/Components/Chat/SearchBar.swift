@@ -13,20 +13,21 @@ struct SearchBar: View {
     var body: some View {
         HStack {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.7))
             
             TextField("Search conversations...", text: $text)
                 .textFieldStyle(PlainTextFieldStyle())
+                .foregroundStyle(.white)
             
             if !text.isEmpty {
                 Button(action: { text = "" }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.7))
                 }
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .background(.black.opacity(0.3), in: RoundedRectangle(cornerRadius: 10))
     }
 }

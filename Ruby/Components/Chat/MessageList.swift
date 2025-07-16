@@ -38,11 +38,10 @@ struct MessagesList: View {
                     }
 
                     // Streaming content when AI is responding
-                    if chatStore.currentState == .streaming
-                        && !chatStore.streamingContent.isEmpty
+                    if chatStore.currentState == .streaming, let content = chatStore.streamingContent, !content.isEmpty
                     {
                         StreamingMessageView(
-                            content: chatStore.streamingContent
+                            content: chatStore.streamingContent ?? "no streaming content"
                         )
                         .id("live_response")
                     }
@@ -58,7 +57,7 @@ struct MessagesList: View {
                 }
             }
             .onChange(of: chatStore.streamingContent) { _, _ in
-                if !chatStore.streamingContent.isEmpty {
+                if let content = chatStore.streamingContent, !content.isEmpty {
                     withAnimation(.easeOut(duration: 0.2)) {
                         scrollViewProxy.scrollTo(
                             "bottom_padding",

@@ -2,10 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>The app needs access to the microphone so the user can provide prompt content for the AI model using their voice</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>The app uses speech recognition to transcribe voice dialouge to textual prompt content for the AI model the user is interacting with</string>
+	<key>CFBundleDocumentTypes</key>
+	<array/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -13,5 +11,7 @@
 			<string></string>
 		</dict>
 	</array>
+	<key>MKDirectionsApplicationSupportedModes</key>
+	<array/>
 </dict>
 </plist>

@@ -17,24 +17,24 @@ struct ChatHistoryRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(truncatedTitle)
                     .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.white)
                     .lineLimit(1)
                 
                 Text(session.lastMessage?.content ?? "No messages")
                     .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.white.opacity(0.8))
                     .lineLimit(2)
                 
                 HStack {
-                    Text(session.lastModified, style: .relative)
+                    Text(formattedLastModified)
                         .font(.caption)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.white.opacity(0.6))
                     
                     Spacer()
                     
                     Text("\(session.messageCount) messages")
                         .font(.caption)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.white.opacity(0.6))
                 }
             }
             
@@ -63,5 +63,32 @@ struct ChatHistoryRow: View {
             return String(session.title.prefix(40)) + "..."
         }
         return session.title
+    }
+    
+    private var formattedLastModified: String {
+        let now = Date()
+        let interval = now.timeIntervalSince(session.lastModified)
+        
+        // If more than 7 days old, show absolute date to prevent drift
+        if interval > 7 * 24 * 60 * 60 {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            formatter.timeStyle = .none
+            return formatter.string(from: session.lastModified)
+        }
+        
+        // For recent sessions, use relative time but cap it to prevent indefinite counting
+        if interval < 60 {
+            return "Just now"
+        } else if interval < 60 * 60 {
+            let minutes = Int(interval / 60)
+            return "\(minutes) min ago"
+        } else if interval < 24 * 60 * 60 {
+            let hours = Int(interval / (60 * 60))
+            return "\(hours)h ago"
+        } else {
+            let days = Int(interval / (24 * 60 * 60))
+            return "\(days)d ago"
+        }
     }
 }

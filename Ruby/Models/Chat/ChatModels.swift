@@ -140,7 +140,7 @@ struct VoiceTranscription {
     @Guide(description: "The transcribed text from voice input")
     let text: String
     
-    @Guide(description: "Confidence level of transcription accuracy with a range of 0.0 to 1.0")
+    @Guide(description: "Confidence level of transcription accuracy", .range(0.0...1.0))
     let confidence: Double
     
     @Guide(description: "Detected language code (e.g., 'en-US')")

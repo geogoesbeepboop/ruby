@@ -13,6 +13,7 @@ struct InputPanel: View {
     @Environment(ChatStore.self) private var chatStore
     @Binding var messageText: String
     @FocusState.Binding var isTextFieldFocused: Bool
+    let sendMessage: (String) -> Void
     @State private var isVoiceRecording = false
     @State private var realTimeTranscription = ""
 
@@ -25,7 +26,7 @@ struct InputPanel: View {
                 isTextFieldFocused: $isTextFieldFocused,
                 shouldShowMicButton: shouldShowMicButton,
                 canSendMessage: canSendMessage,
-                sendMessage: sendMessage,
+                sendMessage: sendMessageAction,
                 startVoiceRecording: startVoiceRecordingAction,
                 stopVoiceRecording: stopVoiceRecordingAction
             )
@@ -85,7 +86,7 @@ struct InputPanel: View {
         isTextFieldFocused = true
     }
 
-    private func sendMessage() {
+    private func sendMessageAction() {
         print("📤 [InputPanel] Send button tapped with text: '\(messageText)'")
         guard canSendMessage else {
             print("⚠️ [InputPanel] Cannot send empty message")
@@ -96,9 +97,7 @@ struct InputPanel: View {
         messageText = ""
         isTextFieldFocused = false
 
-        Task {
-            await chatStore.sendMessage(textToSend)
-        }
+        sendMessage(textToSend)
     }
 }
 

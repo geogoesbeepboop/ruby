@@ -10,7 +10,7 @@ import SwiftUI
 struct ChatHeaderView: View {
     @Environment(ChatStore.self) private var chatStore
     @State private var showingSettings = false
-    @State private var showingChatHistory = false
+    @Binding var showingChatHistory: Bool
 
     var body: some View {
         ZStack {
@@ -86,14 +86,12 @@ struct ChatHeaderView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsSheet()
         }
-        .sheet(isPresented: $showingChatHistory) {
-            ChatHistorySheet()
-        }
     }
 }
 
 @available(iOS 26.0, *)
 #Preview {
-    TypingBubbleView()
+    @Previewable @State var showingHistory = false
+    ChatHeaderView(showingChatHistory: $showingHistory)
         .environment(ChatStore())
 }

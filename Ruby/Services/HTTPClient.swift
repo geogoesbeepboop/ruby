@@ -82,6 +82,62 @@ extension HTTPClient {
             body: body
         )
     }
+    
+    // New flexible methods for unknown response structures
+    func getRawData(
+        from url: URL,
+        headers: [String: String]? = nil
+    ) async throws -> Data {
+        try await performRawRequest(url: url, method: .GET, headers: headers, body: Optional<Never>.none)
+    }
+    
+    func getJSON(
+        from url: URL,
+        headers: [String: String]? = nil
+    ) async throws -> [String: Any] {
+        let data = try await getRawData(from: url, headers: headers)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw HTTPError.decodingFailure(NSError(domain: "HTTPClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Response is not a JSON object"]))
+        }
+        return json
+    }
+    
+    func getFlexible<T: Codable>(
+        _ type: T.Type,
+        from url: URL,
+        headers: [String: String]? = nil,
+        fallbackHandler: ((Data) throws -> T)? = nil
+    ) async throws -> T {
+        let data = try await getRawData(from: url, headers: headers)
+        
+        // Try primary decoding first
+        do {
+            return try JSONDecoder().decode(type, from: data)
+        } catch {
+            if config.enableLogging {
+                print("⚠️ [HTTPClient] Primary decode failed: \(error)")
+            }
+            
+            // Try fallback handler if provided
+            if let fallbackHandler = fallbackHandler {
+                do {
+                    return try fallbackHandler(data)
+                } catch {
+                    if config.enableLogging {
+                        print("⚠️ [HTTPClient] Fallback decode failed: \(error)")
+                    }
+                }
+            }
+            
+            // Log raw response for debugging
+            if config.enableLogging {
+                let responseString = String(data: data, encoding: .utf8) ?? "Unable to decode as UTF-8"
+                print("🔍 [HTTPClient] Raw response: \(responseString)")
+            }
+            
+            throw HTTPError.decodingFailure(error)
+        }
+    }
 }
 
 // MARK: - Core Request Logic
@@ -128,6 +184,66 @@ extension HTTPClient {
                 }
                 
                 return result
+                
+            } catch let error as HTTPError {
+                lastError = error
+                
+                // Don't retry for certain errors
+                if !error.shouldRetry || attempt == config.maxRetryAttempts {
+                    break
+                }
+                
+                // Exponential backoff
+                let delay = config.retryDelay * pow(2.0, Double(attempt - 1))
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                
+            } catch {
+                lastError = HTTPError.decodingFailure(error)
+                break
+            }
+        }
+        
+        throw lastError ?? HTTPError.unknownError
+    }
+    
+    private func performRawRequest<U: Codable>(
+        url: URL,
+        method: HTTPMethod,
+        headers: [String: String]? = nil,
+        body: U? = nil
+    ) async throws -> Data {
+        
+        // Check network availability
+        guard isNetworkAvailable else {
+            throw HTTPError.networkUnavailable
+        }
+        
+        // Retry logic with exponential backoff
+        var lastError: Error?
+        
+        for attempt in 1...config.maxRetryAttempts {
+            do {
+                let request = try buildRequest(
+                    url: url,
+                    method: method,
+                    headers: headers,
+                    body: body
+                )
+                
+                if config.enableLogging {
+                    print("🌐 [HTTPClient] \(method.rawValue) \(url) (attempt \(attempt))")
+                }
+                
+                let (data, response) = try await session.data(for: request)
+                
+                // Validate response
+                try validateResponse(response, data: data)
+                
+                if config.enableLogging {
+                    print("✅ [HTTPClient] Success: \(url)")
+                }
+                
+                return data
                 
             } catch let error as HTTPError {
                 lastError = error

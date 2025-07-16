@@ -34,11 +34,23 @@ struct SettingsSheet: View {
                 Section("Preferences") {
                     Toggle(
                         "Voice Input",
-                        isOn: .constant(chatStore.settings.voiceEnabled)
+                        isOn: Binding(
+                            get: { chatStore.settings.voiceEnabled },
+                            set: { newValue in
+                                chatStore.settings.voiceEnabled = newValue
+                                chatStore.saveSettings()
+                            }
+                        )
                     )
                     Toggle(
                         "Streaming Responses",
-                        isOn: .constant(chatStore.settings.streamingEnabled)
+                        isOn: Binding(
+                            get: { chatStore.settings.streamingEnabled },
+                            set: { newValue in
+                                chatStore.settings.streamingEnabled = newValue
+                                chatStore.saveSettings()
+                            }
+                        )
                     )
                 }
 
