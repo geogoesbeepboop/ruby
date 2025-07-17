@@ -20,8 +20,7 @@ final class DataManager {
             
             let modelConfiguration = ModelConfiguration(
                 schema: schema,
-                isStoredInMemoryOnly: false,
-                cloudKitDatabase: .automatic // Enable CloudKit sync
+                isStoredInMemoryOnly: true
             )
 
             let container = try ModelContainer(

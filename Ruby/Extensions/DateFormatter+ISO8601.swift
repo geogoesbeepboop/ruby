@@ -13,4 +13,9 @@ extension DateFormatter {
         formatter.timeZone = TimeZone(abbreviation: "UTC")
         return formatter
     }()
+    static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
 }

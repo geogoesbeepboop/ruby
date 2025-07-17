@@ -56,8 +56,10 @@ struct SettingsSheet: View {
 
                 Section {
                     Button("Start New Conversation") {
-                        chatStore.startNewSession()
-                        dismiss()
+                        Task {
+                            await chatStore.startNewSession()
+                            dismiss()
+                        }
                     }
                     .foregroundStyle(.red)
                 }

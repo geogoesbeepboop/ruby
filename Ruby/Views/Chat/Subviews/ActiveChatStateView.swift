@@ -89,7 +89,6 @@ struct ActiveChatStateView: View {
     private func generateAIResponse(for input: String) async {
         let startTime = Date()
         print("🤖 [AI-TRIGGER] AI model triggered with user input: '\(input)'")
-        print("🔧 [AI-CONFIG] Using streaming: \(chatStore.settings.streamingEnabled), temperature: \(chatStore.generationOptions.temperature)")
         print("👤 [AI-PERSONA] Active persona: \(chatStore.settings.selectedPersona.rawValue)")
         print("📝 [AI-CONTEXT] Message count in session: \(chatStore.messages.count)")
         
@@ -127,7 +126,6 @@ struct ActiveChatStateView: View {
         
         do {
             print("🔧 [STREAM-INIT] Initializing streaming session with LanguageModelSession")
-            print("⚙️ [STREAM-OPTIONS] Temperature: \(GenerationOptionsFlavors.default.temperature ?? 1.0)")
             print("📋 [FINAL-PROMPT] User input being sent to model: '\(input)'")
             
             let stream = chatStore.publicLanguageSession.streamResponse(
@@ -190,7 +188,6 @@ struct ActiveChatStateView: View {
     private func generateCompleteResponse(for input: String) async {
         do {
             print("🔧 [COMPLETE-INIT] Initializing complete response with LanguageModelSession")
-            print("⚙️ [COMPLETE-OPTIONS] Temperature: \(chatStore.generationOptions.temperature ?? 1.0)")
             print("📋 [FINAL-PROMPT] User input being sent to model: '\(input)'")
             print("🎯 [RESPONSE-TYPE] Generating structured ChatResponse with content, tone, and confidence")
             
@@ -198,9 +195,7 @@ struct ActiveChatStateView: View {
             let response = try await chatStore.publicLanguageSession.respond(
                 to: input,
                 generating: ChatResponse.self,
-                options: GenerationOptions(
-                    temperature: chatStore.generationOptions.temperature
-                )
+                options: GenerationOptionsFlavors.default
             )
             let responseTime = Date().timeIntervalSince(responseStartTime)
             
@@ -240,44 +235,6 @@ struct ActiveChatStateView: View {
             print("🔍 [COMPLETE-ERROR-DETAIL] Error type: \(type(of: error)), description: \(error.localizedDescription)")
         }
     }
-}
-
-extension Color {
-    static func mix(_ color1: Color, _ color2: Color, ratio: CGFloat) -> Color {
-        let r = Double(ratio)
-        return Color(
-            red: (1 - r) * color1.components.red + r * color2.components.red,
-            green: (1 - r) * color1.components.green + r * color2.components.green,
-            blue: (1 - r) * color1.components.blue + r * color2.components.blue
-        )
-    }
-    
-    // Legacy Ruby colors moved to LotusColors.swift theme file
-
-    // Helper to extract RGBA components
-    var components: (red: Double, green: Double, blue: Double, opacity: Double) {
-        #if os(iOS)
-        let uiColor = UIColor(self)
-        var r: CGFloat = 0
-        var g: CGFloat = 0
-        var b: CGFloat = 0
-        var a: CGFloat = 0
-        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-        return (Double(r), Double(g), Double(b), Double(a))
-        #else
-        return (0, 0, 0, 1) // Add macOS support if needed
-        #endif
-    }
-}
-
-// MARK: - Extensions
-
-extension DateFormatter {
-    static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
-    }()
 }
 
 // MARK: - Preview

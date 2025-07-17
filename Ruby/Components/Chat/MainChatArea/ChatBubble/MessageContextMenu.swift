@@ -39,6 +39,6 @@ struct MessageContextMenu: View {
     }
 
     private func deleteMessage() {
-        chatStore.deleteMessage(with: message.id)
+        chatStore.deleteMessage(message)
     }
 }

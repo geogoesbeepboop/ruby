@@ -8,7 +8,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct MessageMetadataView: View {
-    let metadata: ChatMessage.MessageMetadata
+    let metadata: MessageMetadata
 
     var body: some View {
         HStack(spacing: 8) {

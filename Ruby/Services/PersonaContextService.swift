@@ -44,6 +44,7 @@ final class PersonaContextService: ObservableObject {
     
     private func fetchContextForPersona(_ persona: AIPersona, count: Int, userInput: String? = nil) async throws -> [ContextItem] {
         switch persona {
+        case .none: return []
         case .therapist:
             return try await fetchTherapistContext(count: count)
         case .techLead:
@@ -252,6 +253,7 @@ enum ContextType {
 struct PersonaFallbacks {
     static func getContent(for persona: AIPersona) -> [ContextItem] {
         switch persona {
+        case .none: return []
         case .therapist:
             return [
                 ContextItem(type: .advice, content: "Take time to breathe and reflect on your feelings.", source: "Built-in", timestamp: Date()),
