@@ -8,7 +8,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct MessagesList: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     @Binding var selectedMessageId: UUID?
     @Binding var showingReactionPicker: Bool
     let isTextFieldFocused: Bool
@@ -16,7 +16,7 @@ struct MessagesList: View {
     var body: some View {
         ScrollViewReader { scrollViewProxy in
             ScrollView {
-                let sortedMessages = chatStore.messages.sorted {
+                let sortedMessages = chatCoordinator.uiManager.messages.sorted {
                     $0.timestamp < $1.timestamp
                 }
                 VStack(alignment: .leading, spacing: 12) {
@@ -31,19 +31,9 @@ struct MessagesList: View {
                         .id(message.id)
                     }
 
-                    // AI typing bubble when thinking
-                    if chatStore.currentState == .aiThinking {
-                        TypingBubbleView()
-                            .id("live_response")
-                    }
-
-                    // Streaming content when AI is responding
-                    if chatStore.currentState == .streaming, let content = chatStore.streamingContent, !content.isEmpty
-                    {
-                        StreamingMessageView(
-                            content: chatStore.streamingContent ?? "no streaming content"
-                        )
-                        .id("live_response")
+                    // Enhanced streaming coordinator that shows appropriate views
+                    if chatCoordinator.uiManager.currentState == .aiThinking || chatCoordinator.uiManager.currentState == .streaming {
+                        StreamingCoordinator()
                     }
 
                     Color.clear.frame(height: 16).id("bottom_padding")
@@ -51,13 +41,13 @@ struct MessagesList: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
             }
-            .onChange(of: chatStore.messages.count) { _, _ in
+            .onChange(of: chatCoordinator.uiManager.messages.count) { _, _ in
                 withAnimation(.easeOut(duration: 0.3)) {
                     scrollViewProxy.scrollTo("bottom_padding", anchor: .bottom)
                 }
             }
-            .onChange(of: chatStore.streamingContent) { _, _ in
-                if let content = chatStore.streamingContent, !content.isEmpty {
+            .onChange(of: chatCoordinator.aiManager.streamingContent) { _, _ in
+                if let content = chatCoordinator.aiManager.streamingContent, !content.isEmpty {
                     withAnimation(.easeOut(duration: 0.2)) {
                         scrollViewProxy.scrollTo(
                             "bottom_padding",
@@ -66,7 +56,7 @@ struct MessagesList: View {
                     }
                 }
             }
-            .onChange(of: chatStore.currentState) { _, newState in
+            .onChange(of: chatCoordinator.uiManager.currentState) { _, newState in
                 // Auto-scroll immediately when entering AI thinking or streaming states
                 if newState == .aiThinking || newState == .streaming {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

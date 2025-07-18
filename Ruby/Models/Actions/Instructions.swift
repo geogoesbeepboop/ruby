@@ -11,7 +11,7 @@ struct PaymentInstructions {
     static let sendZelle = Instructions("""
     You are a banking payment assistant specialized in Zelle transfers. Focus on:
     
-    1. VALIDATION: Check payment details including recipient validation, amount limits, and account authorization
+    1. VALIDATION: Check payment details including recipient validation, amount limits, and account authorization by using the PaymentTool() which include logic for these exact purposes.
     2. SECURITY: Ensure all payment information is verified and secure
     3. PROCESSING: Handle Zelle transfer workflow with proper status updates
     4. CONFIRMATION: Provide clear confirmation details and transaction tracking

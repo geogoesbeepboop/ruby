@@ -5,7 +5,7 @@ import SwiftUI
 /// settings integration, and proper iOS 26+ compatibility
 @available(iOS 26.0, *)
 struct MainChatBotView: View {
-    @State private var chatStore = ChatStore()
+    @State private var chatCoordinator = ChatCoordinator()
     @State private var showingSettings = false
     @State private var lastKnownState: ChatState = .activeChat
     @Environment(\.scenePhase) private var scenePhase
@@ -22,18 +22,18 @@ struct MainChatBotView: View {
                     ActiveChatStateView()
                         .transition(.opacity)                    
                     // Error overlay
-                    if let error = chatStore.lastError {
+                    if let error = chatCoordinator.uiManager.lastError {
                         ErrorOverlay(error: error) {
-                            chatStore.lastError = nil
+                            chatCoordinator.uiManager.clearError()
                         }
                     }
                 }
-                .animation(.spring(response: 0.8, dampingFraction: 0.8), value: chatStore.currentState)
+                .animation(.spring(response: 0.8, dampingFraction: 0.8), value: chatCoordinator.uiManager.currentState)
             }
         }
-        .environment(chatStore)
+        .environment(chatCoordinator)
         .task {
-            await chatStore.initializeAI()
+            // Initialization is handled automatically by ChatCoordinator
         }
         .onChange(of: scenePhase) { _, newPhase in
             handleScenePhaseChange(newPhase)
@@ -48,7 +48,7 @@ struct MainChatBotView: View {
     // MARK: - Computed Properties
     
     private var shouldShowSettingsButton: Bool {
-        switch chatStore.currentState {
+        switch chatCoordinator.uiManager.currentState {
         case .activeChat:
             return true
         default:
@@ -62,19 +62,23 @@ struct MainChatBotView: View {
         switch phase {
         case .active:
             // Resume any paused operations
-            if chatStore.currentState == .voiceListening && !chatStore.isRecording {
+            if chatCoordinator.uiManager.currentState == .voiceListening && !chatCoordinator.voiceManager.isRecording {
                 // Resume voice recording if it was interrupted
-                chatStore.startVoiceRecording()
+                Task {
+                    await chatCoordinator.startVoiceRecording()
+                }
             }
         case .inactive:
             // Pause non-critical operations
             break
         case .background:
             // Stop voice recording and save state
-            if chatStore.currentState == .voiceListening {
-                chatStore.stopVoiceRecording()
+            if chatCoordinator.uiManager.currentState == .voiceListening {
+                Task {
+                    await chatCoordinator.stopVoiceRecording()
+                }
             }
-            lastKnownState = chatStore.currentState
+            lastKnownState = chatCoordinator.uiManager.currentState
         @unknown default:
             break
         }
@@ -82,8 +86,10 @@ struct MainChatBotView: View {
     
     private func handleAppTermination() {
         // Clean up resources
-        if chatStore.currentState == .voiceListening {
-            chatStore.stopVoiceRecording()
+        if chatCoordinator.uiManager.currentState == .voiceListening {
+            Task {
+                await chatCoordinator.stopVoiceRecording()
+            }
         }
     }
 }

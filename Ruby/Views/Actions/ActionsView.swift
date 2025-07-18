@@ -44,7 +44,8 @@ struct ActionsView: View {
                                 icon: "dollarsign.circle.fill",
                                 isLoading: paymentFlow.isProcessing
                             ) {
-                                print("[ActionsView] Payment button tapped")
+                                print("\n🔘 [ActionsView] === USER INTERACTION: PAYMENT BUTTON TAPPED ===")
+                                print("🔄 [ActionsView] Setting triggerPayment = true to activate .task")
                                 triggerPayment = true
                             }
                             
@@ -54,7 +55,8 @@ struct ActionsView: View {
                                 icon: "creditcard.fill",
                                 isLoading: balanceInfo.isLoading
                             ) {
-                                print("[ActionsView] Balance button tapped")
+                                print("\n🔘 [ActionsView] === USER INTERACTION: BALANCE BUTTON TAPPED ===")
+                                print("🔄 [ActionsView] Setting triggerBalance = true to activate .task")
                                 triggerBalance = true
                             }
                         }
@@ -65,38 +67,38 @@ struct ActionsView: View {
                             // Payment Flow Results
                             if paymentFlow.isProcessing {
                                 PaymentProgressView(paymentFlow: paymentFlow)
-                                    .onAppear { print("[ActionsView] Displaying payment progress view") }
+                                    .onAppear { print("🔄 [ActionsView] UI UPDATE: Displaying PaymentProgressView") }
                             }
                             
                             if let payment = paymentFlow.currentPayment {
                                 PaymentDetailsView(payment: payment)
-                                    .onAppear { print("[ActionsView] Displaying payment details view") }
+                                    .onAppear { print("📊 [ActionsView] UI UPDATE: Displaying PaymentDetailsView") }
                             }
                             
                             if let result = paymentFlow.paymentResult {
                                 PaymentResultView(result: result)
-                                    .onAppear { print("[ActionsView] Displaying payment result view") }
+                                    .onAppear { print("✅ [ActionsView] UI UPDATE: Displaying PaymentResultView") }
                             }
                             
                             if let errorMessage = paymentFlow.errorMessage {
                                 ErrorView(message: errorMessage)
-                                    .onAppear { print("[ActionsView] Displaying payment error: \(errorMessage)") }
+                                    .onAppear { print("❌ [ActionsView] UI UPDATE: Displaying payment error: \(errorMessage)") }
                             }
                             
                             // Balance Flow Results
                             if balanceInfo.isLoading {
                                 BalanceLoadingView()
-                                    .onAppear { print("[ActionsView] Displaying balance loading view") }
+                                    .onAppear { print("🔄 [ActionsView] UI UPDATE: Displaying BalanceLoadingView") }
                             }
                             
                             if let balancesSummary = balanceInfo.balancesSummary {
                                 BalancesSummaryView(balances: balancesSummary)
-                                    .onAppear { print("[ActionsView] Displaying balance summary view") }
+                                    .onAppear { print("📊 [ActionsView] UI UPDATE: Displaying BalancesSummaryView") }
                             }
 
                             if let errorMessage = balanceInfo.errorMessage {
                                 ErrorView(message: errorMessage)
-                                    .onAppear { print("[ActionsView] Displaying balance error: \(errorMessage)") }
+                                    .onAppear { print("❌ [ActionsView] UI UPDATE: Displaying balance error: \(errorMessage)") }
                             }
                         }
                         .padding(.horizontal, 20)
@@ -108,20 +110,20 @@ struct ActionsView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .onAppear {
-            print("[ActionsView] ActionsView appeared")
+            print("📱 [ActionsView] ActionsView appeared - PaymentFlow and BalanceInfo @StateObjects ready")
         }
         .task(id: triggerPayment) {
             guard triggerPayment else { return }
-            print("[ActionsView] Payment task triggered")
+            print("🚀 [ActionsView] Payment .task triggered - calling PaymentFlow.handlePaymentFlow()")
             await paymentFlow.handlePaymentFlow()
-            print("[ActionsView] Payment task completed, resetting trigger")
+            print("✅ [ActionsView] Payment .task completed - resetting triggerPayment = false")
             triggerPayment = false
         }
         .task(id: triggerBalance) {
             guard triggerBalance else { return }
-            print("[ActionsView] Balance task triggered")
+            print("🚀 [ActionsView] Balance .task triggered - calling BalanceInfo.handleBalanceCheck()")
             await balanceInfo.handleBalanceCheck()
-            print("[ActionsView] Balance task completed, resetting trigger")
+            print("✅ [ActionsView] Balance .task completed - resetting triggerBalance = false")
             triggerBalance = false
         }
     }

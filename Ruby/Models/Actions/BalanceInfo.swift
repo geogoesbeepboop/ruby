@@ -16,28 +16,31 @@ final class BalanceInfo: ObservableObject {
     @Published var lastRefreshDate: Date?
     
     init() {
-        print("[BalanceInfo] Initializing BalanceInfo")
+        print("🚀 [BalanceInfo] Initializing BalanceInfo ObservableObject")
         
         let balanceTool = BalanceTool()
-        print("[BalanceInfo] Created BalanceTool: \(balanceTool.name)")
+        print("🔧 [BalanceInfo] Created BalanceTool: \(balanceTool.name)")
         
         self.session = LanguageModelSession(
             tools: [balanceTool],
             instructions: BalanceInstructions.comprehensive
         )
-        print("[BalanceInfo] LanguageModelSession initialized with BalanceTool")
+        print("📱 [BalanceInfo] LanguageModelSession initialized with BalanceTool")
+        print("✅ [BalanceInfo] BalanceInfo ready for user interactions")
     }
 
     @MainActor
     func handleBalanceCheck() async {
-        print("[BalanceInfo] Starting balance check")
+        print("\n💰 [BalanceInfo] === BALANCE WORKFLOW STARTED ===")
+        print("🔄 [BalanceInfo] User clicked 'Check Balances' button")
         startLoading()
         
         do {
             let prompt = Prompt("Retrieve comprehensive account balances and summary for all user accounts including checking, savings, and credit accounts")
-            print("[BalanceInfo] Created balance check prompt: \(prompt)")
+            print("📝 [BalanceInfo] Created balance prompt for LanguageModelSession")
+            print("🤖 [BalanceInfo] Sending prompt to Apple Foundation Models...")
             
-            print("[BalanceInfo] Starting balance summary stream")
+            print("🔄 [BalanceInfo] Streaming balance data from LanguageModelSession")
             let balanceSummaryStream = session.streamResponse(
                 to: prompt,
                 generating: BalancesSummary.self,
@@ -49,39 +52,40 @@ final class BalanceInfo: ObservableObject {
             )
             
             for try await partialBalanceSummary in balanceSummaryStream {
-                print("[BalanceInfo] Received partial balance summary: \(partialBalanceSummary)")
                 balancesSummary = partialBalanceSummary
             }
-            print("[BalanceInfo] Balance summary stream completed")
+            print("✅ [BalanceInfo] Balance summary stream completed")
             
             lastRefreshDate = Date()
-            print("[BalanceInfo] Updated last refresh date: \(lastRefreshDate!)")
+            print("📅 [BalanceInfo] Updated last refresh date: \(lastRefreshDate!)")
             
         } catch {
-            print("[BalanceInfo] Error occurred: \(error.localizedDescription)")
+            print("❌ [BalanceInfo] ERROR in balance workflow: \(error.localizedDescription)")
             setError("Balance check failed: \(error.localizedDescription)")
         }
         
-        print("[BalanceInfo] Balance check completed")
+        print("✅ [BalanceInfo] === BALANCE WORKFLOW COMPLETED ===\n")
         completeLoading()
     }
     
     @MainActor
     func startLoading() {
-        print("[BalanceInfo] Starting loading - clearing previous state")
+        print("🔄 [BalanceInfo] Setting isLoading = true, clearing previous state")
+        print("🧹 [BalanceInfo] Clearing balancesSummary, errorMessage")
         isLoading = true
         errorMessage = nil
     }
     
     @MainActor
     func completeLoading() {
-        print("[BalanceInfo] Completing loading")
+        print("✅ [BalanceInfo] Setting isLoading = false - UI will hide loading state")
         isLoading = false
     }
     
     @MainActor
     func setError(_ error: String) {
-        print("[BalanceInfo] Setting error: \(error)")
+        print("❌ [BalanceInfo] Setting error state: \(error)")
+        print("🔄 [BalanceInfo] Setting isLoading = false - UI will show error")
         errorMessage = error
         isLoading = false
     }

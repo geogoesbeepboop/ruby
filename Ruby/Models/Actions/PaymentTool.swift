@@ -10,7 +10,7 @@ import FoundationModels
 @available(iOS 26.0, *)
 final class PaymentTool: Tool {
     let name = "paymentProcessor"
-    let description = "Validates payment details, calculates fees, and provides payment processing information"
+    let description = "Necessary for processing and validates payment details, calculates fees, and provides payment processing information"
     
     @Generable
     struct Arguments {
@@ -25,7 +25,13 @@ final class PaymentTool: Tool {
     }
     
     func call(arguments: Arguments) async throws -> ToolOutput {
-        print("[PaymentTool] Tool called with arguments: amount=\(arguments.amount), recipient=\(arguments.recipient), method=\(arguments.method)")
+        print("🔧 [PaymentTool] Starting payment validation")
+        print("   💰 Amount: $\(String(format: "%.2f", arguments.amount))")
+        print("   👤 Recipient: \(arguments.recipient)")
+        print("   💳 Method: \(arguments.method)")
+        if let memo = arguments.memo {
+            print("   📝 Memo: \(memo)")
+        }
         
         // Simulate processing time
         try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
@@ -35,6 +41,7 @@ final class PaymentTool: Tool {
         let fees = calculateFees(amount: arguments.amount, method: arguments.method)
         let processingTime = getProcessingTime(method: arguments.method)
         let accountStatus = checkAccountStatus()
+        let remainingLimit = getRemainingDailyLimit()
         
         let result = """
         Payment Validation Results:
@@ -42,58 +49,63 @@ final class PaymentTool: Tool {
         - Processing fee: $\(String(format: "%.2f", fees))
         - Estimated processing time: \(processingTime)
         - Account status: \(accountStatus)
-        - Daily limit remaining: $\(String(format: "%.2f", getRemainingDailyLimit()))
+        - Daily limit remaining: $\(String(format: "%.2f", remainingLimit))
         - Security verification: ✅ Passed
         """
         
-        print("[PaymentTool] Returning validation results: \(result)")
+        print("✅ [PaymentTool] Validation complete - returning results to LanguageModelSession")
         return ToolOutput(result)
     }
     
     // MARK: - Private Helper Methods (Hardcoded POC Data)
     
     private func validateRecipient(_ recipient: String) -> Bool {
-        print("[PaymentTool] Validating recipient: \(recipient)")
         // Mock validation - email format or phone format
-        return recipient.contains("@") || recipient.contains("+") || recipient.allSatisfy { $0.isNumber }
+        let isValid = recipient.contains("@") || recipient.contains("+") || recipient.allSatisfy { $0.isNumber }
+        print("   🔍 Recipient validation: \(isValid ? "✅ Valid" : "❌ Invalid")")
+        return isValid
     }
     
     private func calculateFees(amount: Double, method: String) -> Double {
-        print("[PaymentTool] Calculating fees for amount: \(amount), method: \(method)")
-        switch method.lowercased() {
+        let fee = switch method.lowercased() {
         case "zelle":
-            return 0.0 // Zelle typically free
+            0.0 // Zelle typically free
         case "wire":
-            return 25.0
+            25.0
         case "ach":
-            return 1.50
+            1.50
         default:
-            return 2.50
+            2.50
         }
+        print("   💵 Fee calculation: $\(String(format: "%.2f", fee)) for \(method)")
+        return fee
     }
     
     private func getProcessingTime(method: String) -> String {
-        print("[PaymentTool] Getting processing time for method: \(method)")
-        switch method.lowercased() {
+        let time = switch method.lowercased() {
         case "zelle":
-            return "Instant (typically within minutes)"
+            "Instant (typically within minutes)"
         case "wire":
-            return "Same business day"
+            "Same business day"
         case "ach":
-            return "1-3 business days"
+            "1-3 business days"
         default:
-            return "2-3 business days"
+            "2-3 business days"
         }
+        print("   ⏱️ Processing time: \(time)")
+        return time
     }
     
     private func checkAccountStatus() -> String {
-        print("[PaymentTool] Checking account status")
         let statuses = ["Active - Good Standing", "Active - Standard", "Active - Premium Member"]
-        return statuses.randomElement() ?? "Active"
+        let status = statuses.randomElement() ?? "Active"
+        print("   🏦 Account status: \(status)")
+        return status
     }
     
     private func getRemainingDailyLimit() -> Double {
-        print("[PaymentTool] Getting remaining daily limit")
-        return Double.random(in: 500.0...2500.0)
+        let limit = Double.random(in: 500.0...2500.0)
+        print("   📊 Daily limit remaining: $\(String(format: "%.2f", limit))")
+        return limit
     }
 }

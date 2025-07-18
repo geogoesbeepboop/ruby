@@ -15,6 +15,7 @@ enum ChatError: LocalizedError {
     case permissionDenied
     case saveFailed
     case loadFailed
+    case responseGenerationFailed
     
     // New LanguageModelSession.GenerationError specific cases
     case assetsUnavailable
@@ -40,6 +41,8 @@ enum ChatError: LocalizedError {
             return "Failed to save data"
         case .loadFailed:
             return "Failed to load data"
+        case .responseGenerationFailed:
+            return "Failed to generate AI response"
         case .assetsUnavailable:
             return "Required AI assets are currently unavailable"
         case .decodingFailure:

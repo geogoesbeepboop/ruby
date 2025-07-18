@@ -10,7 +10,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct InputPanel: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     @Binding var messageText: String
     @FocusState.Binding var isTextFieldFocused: Bool
     let sendMessage: (String) -> Void
@@ -33,10 +33,10 @@ struct InputPanel: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
-        .onChange(of: chatStore.currentState) { _, newState in
+        .onChange(of: chatCoordinator.uiManager.currentState) { _, newState in
             isVoiceRecording = (newState == .voiceListening)
         }
-        .onChange(of: chatStore.isRecording) { _, recording in
+        .onChange(of: chatCoordinator.voiceManager.isRecording) { _, recording in
             isVoiceRecording = recording
             if !recording {
                 realTimeTranscription = ""
@@ -76,12 +76,12 @@ struct InputPanel: View {
     private func startVoiceRecordingAction() {
         print("▶️ [InputPanel] Starting voice recording")
         isTextFieldFocused = false
-        chatStore.startVoiceRecording()
+        Task { await chatCoordinator.startVoiceRecording() }
     }
     
     private func stopVoiceRecordingAction() {
         print("🚫 [InputPanel] Stopping voice recording")
-        chatStore.stopVoiceRecording()
+        Task { await chatCoordinator.stopVoiceRecording() }
         // Focus text field after stopping recording so user can edit/send
         isTextFieldFocused = true
     }
