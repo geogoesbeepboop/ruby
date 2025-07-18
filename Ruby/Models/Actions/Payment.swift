@@ -48,12 +48,4 @@ struct PaymentResult: Equatable {
     @Guide(description: "Updated account balance after payment")
     let newBalance: Double
     @Guide(description: "Estimated completion time in ISO8601 format")
-    let estimatedCompletion: String
-    
-    static func == (lhs: PaymentResult, rhs: PaymentResult) -> Bool {
-        return lhs.payment == rhs.payment &&
-               lhs.confirmationNumber == rhs.confirmationNumber &&
-               lhs.newBalance == rhs.newBalance &&
-               lhs.estimatedCompletion == rhs.estimatedCompletion
-    }
-}
+    let estimatedCompletion: String}

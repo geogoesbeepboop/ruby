@@ -7,10 +7,10 @@
 import Foundation
 import FoundationModels
 
-@MainActor @Observable final class BalanceInfo {
+@Observable
+@MainActor
+final class BalanceInfo {
     let session: LanguageModelSession
-    
-    // State properties - updated by views via streaming
     var balancesSummary: BalancesSummary.PartiallyGenerated?
     var isLoading = false
     var errorMessage: String?
@@ -33,7 +33,7 @@ import FoundationModels
         do {
             let prompt = Prompt("Retrieve comprehensive account balances and summary for all user accounts including checking, savings, and credit accounts")
             
-            let stream2 = session.streamResponse(
+            let balanceSummaryStream = session.streamResponse(
                 to: prompt,
                 generating: BalancesSummary.self,
                 includeSchemaInPrompt: true,
@@ -43,9 +43,8 @@ import FoundationModels
                     maximumResponseTokens: 600
                 )
             )
-            for try await partialBalance in stream2 {
-                //TODO: Add logic here to update optional property managed by final observed class
-//                balanceInfo.updateBalances(balances)
+            for try await partialBalanceSummary in balanceSummaryStream {
+                balancesSummary = partialBalanceSummary
             }
         } catch {
             print("Balance check failed: \(error.localizedDescription)")

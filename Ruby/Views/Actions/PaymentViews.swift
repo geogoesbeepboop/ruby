@@ -87,7 +87,7 @@ struct PaymentProgressView: View {
 
 @available(iOS 26.0, *)
 struct PaymentDetailsView: View {
-    let payment: Payment
+    let payment: Payment.PartiallyGenerated
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -106,7 +106,7 @@ struct PaymentDetailsView: View {
                 DetailRow(label: "Amount", value: "$\(payment.amount)")
                 DetailRow(label: "Recipient", value: payment.to)
                 DetailRow(label: "From Account", value: payment.fromAccount)
-                DetailRow(label: "Memo", value: payment.memo ?? "no memo")
+                DetailRow(label: "Memo", value: payment.memo)
                 DetailRow(label: "Method", value: payment.method.rawValue.capitalized)
                 DetailRow(label: "Fees", value: "$\(payment.fees)")
             }
@@ -125,7 +125,7 @@ struct PaymentDetailsView: View {
 
 @available(iOS 26.0, *)
 struct PaymentResultView: View {
-    let result: PaymentResult
+    let result: PaymentResult.PartiallyGenerated
     
     var body: some View {
         VStack(spacing: 16) {
@@ -158,7 +158,7 @@ struct PaymentResultView: View {
                 
                 VStack(spacing: 8) {
                     DetailRow(label: "New Account Balance", value: "$\(result.newBalance)")
-                    DetailRow(label: "Estimated Completion", value: DateFormatter.iso8601.date(from: result.estimatedCompletion)?.formatted(date: .abbreviated, time: .shortened) ?? "No estimated completion date")
+                    DetailRow(label: "Estimated Completion", value: DateFormatter.iso8601.date(from: result.estimatedCompletion)?.formatted(date: .abbreviated, time: .shortened))
                     DetailRow(label: "Amount Sent", value: "$\(result.payment.amount)")
                     DetailRow(label: "Sent To", value: result.payment.to)
                 }

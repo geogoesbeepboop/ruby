@@ -11,10 +11,8 @@ import FoundationModels
 @MainActor
 final class PaymentFlow {
     let session: LanguageModelSession
-    
-    // State properties - updated by views via streaming
-    var currentPayment: Payment?
-    var paymentResult: PaymentResult?
+    var currentPayment: Payment.PartiallyGenerated?
+    var paymentResult: PaymentResult.PartiallyGenerated?
     var isProcessing = false
     var errorMessage: String?
     
@@ -36,7 +34,7 @@ final class PaymentFlow {
             let prompt = Prompt("Initiate Zelle payment: Send $50.00 to john@example.com with memo 'Lunch money'")
             
             // First stream: Get payment details
-            var stream1 = session.streamResponse(
+            var paymentStream = session.streamResponse(
                 to: prompt,
                 generating: Payment.self,
                 includeSchemaInPrompt: true,
@@ -46,14 +44,14 @@ final class PaymentFlow {
                     maximumResponseTokens: 300
                 )
             )
-            for try await partialPayment in stream1 {
-                //TODO: Add logic here to update optional property managed by final observed class
+            for try await partialPayment in paymentStream {
+                currentPayment = partialPayment
             }
             
             // Second stream: Get payment result/confirmation
             let resultPrompt = Prompt("Complete the payment processing and provide confirmation details including confirmation number and updated balance")
             
-            let stream2 = session.streamResponse(
+            let paymentResultStream = session.streamResponse(
                 to: resultPrompt,
                 generating: PaymentResult.self,
                 includeSchemaInPrompt: true,
@@ -63,9 +61,8 @@ final class PaymentFlow {
                     maximumResponseTokens: 400
                 )
             )
-            for try await partialPaymentResult in stream2 {
-                //TODO: Add logic here to update optional property managed by final observed class
-//                paymentFlow.updateResult(partialPaymentResult)
+            for try await partialPaymentResult in paymentResultStream {
+                paymentResult = partialPaymentResult
             }
         } catch {
             setError("Payment failed: \(error.localizedDescription)")
@@ -87,13 +84,5 @@ final class PaymentFlow {
     func setError(_ error: String) {
         errorMessage = error
         isProcessing = false
-    }
-    
-    func updatePayment(_ payment: Payment) {
-        currentPayment = payment
-    }
-    
-    func updateResult(_ result: PaymentResult) {
-        paymentResult = result
     }
 }
