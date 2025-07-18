@@ -80,6 +80,6 @@ struct ChatBubble<Content: View>: View {
                 .foregroundStyle(.primary)
                 .textSelection(.enabled)
         }
-    }        .environment(ChatStore())
+    }        .environment(ChatCoordinator())
 }
 

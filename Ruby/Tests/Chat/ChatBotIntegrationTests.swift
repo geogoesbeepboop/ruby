@@ -5,21 +5,21 @@
 //@available(iOS 26.0, *)
 //final class ChatBotIntegrationTests: XCTestCase {
 //    
-//    var chatStore: ChatStore!
+//    var chatCoordinator: ChatCoordinator!
 //    
 //    override func setUp() {
 //        super.setUp()
-//        chatStore = ChatStore()
+//        chatCoordinator = ChatCoordinator()
 //    }
 //    
 //    override func tearDown() {
-//        chatStore = nil
+//        chatCoordinator = nil
 //        super.tearDown()
 //    }
 //    
-//    // MARK: - Store Integration Tests
+//    // MARK: - Coordinator Integration Tests
 //    
-//    func testChatStoreInitialization() {
+//    func testChatCoordinatorInitialization() {
 //        XCTAssertEqual(chatStore.currentState, .placeholder)
 //        XCTAssertTrue(chatStore.messages.isEmpty)
 //        XCTAssertEqual(chatStore.currentInput, "")
@@ -318,7 +318,7 @@
 //// MARK: - Mock Extensions for Testing
 //
 //@available(iOS 26.0, *)
-//extension ChatStore {
+//extension ChatCoordinator {
 //    /// Test helper to simulate AI response without actual Foundation Models call
 //    func simulateAIResponse(_ content: String) {
 //        let aiMessage = ChatMessage(

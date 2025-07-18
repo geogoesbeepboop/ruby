@@ -37,8 +37,7 @@ struct ResponseContext {
     let input: String
     let persona: AIPersona
     let messageCount: Int
-    let settings: ChatSettings
-    
+    let settings: ChatSettings    
     var shouldUseStreaming: Bool {
         return settings.streamingEnabled && input.count > 50
     }

@@ -8,7 +8,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct ReactionPickerSheet: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     @Environment(\.dismiss) private var dismiss
     let messageId: UUID?
 
@@ -27,10 +27,12 @@ struct ReactionPickerSheet: View {
                 ForEach(reactions, id: \.self) { reaction in
                     Button(action: {
                         if let messageId = messageId {
-                            chatStore.addReaction(
-                                to: messageId,
-                                reaction: reaction
-                            )
+                            Task {
+                                await chatCoordinator.addReaction(
+                                    to: messageId,
+                                    reaction: reaction
+                                )
+                            }
                         }
                         dismiss()
                     }) {

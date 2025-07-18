@@ -51,6 +51,7 @@ final class ChatAIManager {
     }
     
     func updateInstructions(_ instructions: String) {
+        logger.info("📝 [ChatAIManager] Updating instructions with persona: \(instructions.prefix(100))...")
         createLanguageSession(with: instructions)
     }
     

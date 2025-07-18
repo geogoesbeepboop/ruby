@@ -34,6 +34,6 @@ import FoundationModels
     }
     
 //    // Prewarm the language model session for better performance
-//    print("🔥 [ChatStore] Prewarming language model session...")
+//    print("🔥 [ChatCoordinator] Prewarming language model session...")
 //    languageSession?.prewarm()
 }

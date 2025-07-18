@@ -121,7 +121,7 @@ final class ChatUIManager {
     
     private func loadSettings() async {
         do {
-            let loadedSettings = try await dataManager.loadSettings()
+            let loadedSettings = try dataManager.loadSettings()
             self.settings = loadedSettings
             logger.info("⚙️ [ChatUIManager] Settings loaded successfully")
         } catch {
@@ -132,7 +132,7 @@ final class ChatUIManager {
     
     private func saveSettings() async {
         do {
-            try await dataManager.saveSettings(settings)
+            try dataManager.saveSettings(settings)
             logger.info("💾 [ChatUIManager] Settings saved successfully")
         } catch {
             logger.error("❌ [ChatUIManager] Failed to save settings: \(error.localizedDescription)")

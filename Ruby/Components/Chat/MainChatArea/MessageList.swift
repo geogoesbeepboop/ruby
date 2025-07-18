@@ -21,14 +21,27 @@ struct MessagesList: View {
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(sortedMessages) { message in
-                        MessageBubbleView(
-                            message: message,
-                            onLongPress: { messageId in
-                                selectedMessageId = messageId
-                                showingReactionPicker = true
-                            }
-                        )
-                        .id(message.id)
+                        // Use enhanced UI for AI messages, standard for user messages
+                        if message.isUser {
+                            MessageBubbleView(
+                                message: message,
+                                onLongPress: { messageId in
+                                    selectedMessageId = messageId
+                                    showingReactionPicker = true
+                                }
+                            )
+                            .id(message.id)
+                        } else {
+                            // AI messages use enhanced bubble with metadata
+                            EnhancedMessageBubble(
+                                message: message,
+                                onLongPress: { messageId in
+                                    selectedMessageId = messageId
+                                    showingReactionPicker = true
+                                }
+                            )
+                            .id(message.id)
+                        }
                     }
 
                     // Enhanced streaming coordinator that shows appropriate views

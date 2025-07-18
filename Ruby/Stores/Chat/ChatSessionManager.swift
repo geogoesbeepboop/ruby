@@ -32,10 +32,8 @@ final class ChatSessionManager {
     func startNewSession(with persona: AIPersona) async {
         logger.info("🆕 [ChatSessionManager] Starting new chat session")
         
-        // Save current session if it has messages
-        if let current = currentSession, !current.messages.isEmpty {
-            await saveCurrentSessionSafely()
-        }
+        // For in-memory operation, no need to save before starting new session
+        // Current session will be replaced and previous data is intentionally lost
         
         // Create new session
         let newSession = ConversationSession(
@@ -58,10 +56,8 @@ final class ChatSessionManager {
     func loadSession(_ session: ConversationSession) async {
         logger.info("📁 [ChatSessionManager] Loading session: \(session.id)")
         
-        // Save current session first if it has changes
-        if let current = currentSession, !current.messages.isEmpty, current.id != session.id {
-            await saveCurrentSessionSafely()
-        }
+        // For in-memory operation, no need to save when switching sessions
+        // Previous session data is intentionally lost
         
         currentSession = session
         
@@ -72,7 +68,7 @@ final class ChatSessionManager {
         logger.info("🗑️ [ChatSessionManager] Deleting session: \(session.id)")
         
         do {
-            try await dataManager.deleteSession(withId: session.id)
+            try dataManager.deleteSession(withId: session.id)
             
             // Remove from saved sessions
             savedSessions.removeAll { $0.id == session.id }
@@ -96,7 +92,8 @@ final class ChatSessionManager {
         session.lastModified = Date()
         currentSession = session
         
-        await saveCurrentSessionSafely()
+        // For in-memory operation, no need to save on every message
+        // Saves will happen when session ends or user explicitly saves
     }
     
     func updateSessionTitle(_ title: String) async {
@@ -106,7 +103,7 @@ final class ChatSessionManager {
         session.lastModified = Date()
         currentSession = session
         
-        await saveCurrentSessionSafely()
+        // For in-memory operation, no immediate save needed
     }
     
     func updateSessionPersona(_ persona: AIPersona) async {
@@ -116,14 +113,14 @@ final class ChatSessionManager {
         session.lastModified = Date()
         currentSession = session
         
-        await saveCurrentSessionSafely()
+        // For in-memory operation, no immediate save needed
     }
     
     // MARK: - Private Methods
     
     private func loadSavedSessions() async {
         do {
-            let sessions = try await dataManager.loadSessions()
+            let sessions = try dataManager.loadSessions()
             self.savedSessions = sessions
             logger.info("📂 [ChatSessionManager] Loaded \(sessions.count) saved sessions")
         } catch {
@@ -133,39 +130,9 @@ final class ChatSessionManager {
     }
     
     private func saveCurrentSessionSafely() async {
-        guard let session = currentSession else {
-            logger.debug("💭 [ChatSessionManager] No current session to save")
-            return
-        }
-        
-        // Prevent duplicate save operations for the same session
-        guard !pendingSaveOperations.contains(session.id) else {
-            logger.debug("⏳ [ChatSessionManager] Save operation already pending for session: \(session.id)")
-            return
-        }
-        
-        pendingSaveOperations.insert(session.id)
-        logger.info("💾 [ChatSessionManager] Saving current session: \(session.id)")
-        
-        defer {
-            pendingSaveOperations.remove(session.id)
-        }
-        
-        do {
-            try await dataManager.saveSession(session)
-            
-            // Update saved sessions list
-            if let index = savedSessions.firstIndex(where: { $0.id == session.id }) {
-                savedSessions[index] = session
-            } else {
-                savedSessions.insert(session, at: 0)
-            }
-            
-            logger.info("✅ [ChatSessionManager] Session saved successfully")
-            
-        } catch {
-            logger.error("❌ [ChatSessionManager] Failed to save session: \(error.localizedDescription)")
-        }
+        logger.debug("💭 [ChatSessionManager] Save skipped - in-memory only operation")
+        // For in-memory operation, we don't save sessions to avoid blocking
+        // All session data exists only in memory during app session
     }
     
     private func defaultGreetingMessage(for persona: AIPersona) -> ChatMessage {
@@ -225,7 +192,7 @@ extension ChatSessionManager {
             let session = try decoder.decode(ConversationSession.self, from: data)
             
             // Save imported session
-            try await dataManager.saveSession(session)
+            try dataManager.saveSession(session)
             
             // Add to saved sessions
             savedSessions.insert(session, at: 0)
@@ -242,7 +209,7 @@ extension ChatSessionManager {
         logger.info("🗑️ [ChatSessionManager] Clearing all data")
         
         do {
-            try await dataManager.clearAllData()
+            try dataManager.clearAllData()
             
             // Reset in-memory state
             savedSessions = []

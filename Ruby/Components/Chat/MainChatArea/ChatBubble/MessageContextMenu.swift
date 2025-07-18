@@ -9,7 +9,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct MessageContextMenu: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     let message: ChatMessage
 
     var body: some View {
@@ -39,6 +39,8 @@ struct MessageContextMenu: View {
     }
 
     private func deleteMessage() {
-        chatStore.deleteMessage(message)
+        Task {
+            await chatCoordinator.deleteMessage(message)
+        }
     }
 }

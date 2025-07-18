@@ -67,5 +67,5 @@ struct TypingBubbleView: View {
 @available(iOS 26.0, *)
 #Preview {
     TypingBubbleView()
-        .environment(ChatStore())
+        .environment(ChatCoordinator())
 }

@@ -8,7 +8,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct ChatHeaderView: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     @State private var showingSettings = false
     @Binding var showingChatHistory: Bool
 
@@ -27,7 +27,7 @@ struct ChatHeaderView: View {
                             endPoint: .trailing
                         )
                     )
-                Text(chatStore.settings.selectedPersona.rawValue)
+                Text(chatCoordinator.uiManager.settings.selectedPersona.rawValue)
                     .font(.caption)
                     .foregroundStyle(.black)
             }
@@ -45,9 +45,11 @@ struct ChatHeaderView: View {
                 Spacer()
 
                 // Save session button
-                if chatStore.currentSession != nil || !chatStore.messages.filter({ $0.isUser }).isEmpty {
+                if chatCoordinator.sessionManager.currentSession != nil || !chatCoordinator.uiManager.messages.filter({ $0.isUser }).isEmpty {
                     Button(action: {
-                        chatStore.saveAndEndSession()
+                        Task {
+                            await chatCoordinator.startNewSession()
+                        }
                     }) {
                         Image(systemName: "checkmark.circle")
                             .font(.title3)
@@ -93,5 +95,5 @@ struct ChatHeaderView: View {
 #Preview {
     @Previewable @State var showingHistory = false
     ChatHeaderView(showingChatHistory: $showingHistory)
-        .environment(ChatStore())
+        .environment(ChatCoordinator())
 }

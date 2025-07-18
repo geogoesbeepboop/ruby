@@ -17,6 +17,7 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
         onPartialUpdate: @escaping (String) -> Void
     ) async throws -> ChatMessage {
         logger.info("📄 [CompleteStrategy] Starting complete response generation with streaming")
+        logger.info("🔤 [CompleteStrategy] Input: '\(input)'")
         
         startProcessing()
         
@@ -29,13 +30,15 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
             
             // Use streamResponse even for "complete" strategy to maintain consistency
             logger.info("🌊 [CompleteStrategy] Using streamResponse for consistent streaming behavior")
+            
+            // For now, use input directly - conversation history context is handled by LanguageModelSession
             let responseStream = session.streamResponse(
                 to: input,
                 generating: ChatResponse.self,
                 includeSchemaInPrompt: true,
                 options: GenerationOptions(
-                    temperature: 0.3,
-                    maximumResponseTokens: 800
+                    temperature: 0.7,  // Increased for more natural responses
+                    maximumResponseTokens: 1200  // Increased for longer responses
                 )
             )
             
@@ -61,8 +64,12 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
                 timestamp: Date(),
                 metadata: .init(
                     processingTime: responseTime,
-                    tokens: nil,
-                    confidence: partialResponse?.confidence
+                    tokens: partialResponse?.content?.count, // Approximate token count
+                    confidence: partialResponse?.confidence,
+                    tone: partialResponse?.tone,
+                    category: partialResponse?.category?.rawValue,
+                    topics: partialResponse?.topics,
+                    requiresFollowUp: partialResponse?.requiresFollowUp
                 )
             )
             
