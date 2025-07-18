@@ -9,8 +9,8 @@ import FoundationModels
 
 @available(iOS 26.0, *)
 struct ActionsView: View {
-    @State private var paymentFlow: PaymentFlow
-    @State private var balanceInfo: BalanceInfo
+    @StateObject private var paymentFlow = PaymentFlow()
+    @StateObject private var balanceInfo = BalanceInfo()
     @State private var triggerPayment = false
     @State private var triggerBalance = false
     
@@ -44,6 +44,7 @@ struct ActionsView: View {
                                 icon: "dollarsign.circle.fill",
                                 isLoading: paymentFlow.isProcessing
                             ) {
+                                print("[ActionsView] Payment button tapped")
                                 triggerPayment = true
                             }
                             
@@ -53,6 +54,7 @@ struct ActionsView: View {
                                 icon: "creditcard.fill",
                                 isLoading: balanceInfo.isLoading
                             ) {
+                                print("[ActionsView] Balance button tapped")
                                 triggerBalance = true
                             }
                         }
@@ -63,31 +65,38 @@ struct ActionsView: View {
                             // Payment Flow Results
                             if paymentFlow.isProcessing {
                                 PaymentProgressView(paymentFlow: paymentFlow)
+                                    .onAppear { print("[ActionsView] Displaying payment progress view") }
                             }
                             
                             if let payment = paymentFlow.currentPayment {
                                 PaymentDetailsView(payment: payment)
+                                    .onAppear { print("[ActionsView] Displaying payment details view") }
                             }
                             
                             if let result = paymentFlow.paymentResult {
                                 PaymentResultView(result: result)
+                                    .onAppear { print("[ActionsView] Displaying payment result view") }
                             }
                             
                             if let errorMessage = paymentFlow.errorMessage {
                                 ErrorView(message: errorMessage)
+                                    .onAppear { print("[ActionsView] Displaying payment error: \(errorMessage)") }
                             }
                             
                             // Balance Flow Results
                             if balanceInfo.isLoading {
                                 BalanceLoadingView()
+                                    .onAppear { print("[ActionsView] Displaying balance loading view") }
                             }
                             
                             if let balancesSummary = balanceInfo.balancesSummary {
                                 BalancesSummaryView(balances: balancesSummary)
+                                    .onAppear { print("[ActionsView] Displaying balance summary view") }
                             }
 
                             if let errorMessage = balanceInfo.errorMessage {
                                 ErrorView(message: errorMessage)
+                                    .onAppear { print("[ActionsView] Displaying balance error: \(errorMessage)") }
                             }
                         }
                         .padding(.horizontal, 20)
@@ -98,18 +107,21 @@ struct ActionsView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-        .task {
-            paymentFlow = PaymentFlow()
-            balanceInfo = BalanceInfo()
+        .onAppear {
+            print("[ActionsView] ActionsView appeared")
         }
         .task(id: triggerPayment) {
             guard triggerPayment else { return }
+            print("[ActionsView] Payment task triggered")
             await paymentFlow.handlePaymentFlow()
+            print("[ActionsView] Payment task completed, resetting trigger")
             triggerPayment = false
         }
         .task(id: triggerBalance) {
             guard triggerBalance else { return }
+            print("[ActionsView] Balance task triggered")
             await balanceInfo.handleBalanceCheck()
+            print("[ActionsView] Balance task completed, resetting trigger")
             triggerBalance = false
         }
     }

@@ -26,14 +26,19 @@ struct PaymentProgressView: View {
                     .scaleEffect(0.8)
             }
             
-            if let payment = paymentFlow.currentPayment {
+            if let payment = paymentFlow.currentPayment,
+               let paymentAmount = payment.amount,
+               let paymentTo = payment.to,
+               let paymentStatus = payment.status?.rawValue.capitalized,
+               let paymentTransactionId = payment.transactionId 
+            {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Amount:")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text("$\(payment.amount, specifier: "%.2f")")
+                        Text("$\(paymentAmount, specifier: "%.2f")")
                             .font(.caption)
                             .fontWeight(.medium)
                     }
@@ -43,7 +48,7 @@ struct PaymentProgressView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text(payment.to)
+                        Text(paymentTo)
                             .font(.caption)
                             .fontWeight(.medium)
                     }
@@ -53,7 +58,7 @@ struct PaymentProgressView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text(payment.status.rawValue.capitalized)
+                        Text(paymentStatus)
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.orange)
@@ -64,7 +69,7 @@ struct PaymentProgressView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text(payment.transactionId)
+                        Text(paymentTransactionId)
                             .font(.caption)
                             .fontWeight(.medium)
                             .fontDesign(.monospaced)
@@ -103,12 +108,24 @@ struct PaymentDetailsView: View {
             }
             
             VStack(spacing: 8) {
-                DetailRow(label: "Amount", value: "$\(payment.amount)")
-                DetailRow(label: "Recipient", value: payment.to)
-                DetailRow(label: "From Account", value: payment.fromAccount)
-                DetailRow(label: "Memo", value: payment.memo)
-                DetailRow(label: "Method", value: payment.method.rawValue.capitalized)
-                DetailRow(label: "Fees", value: "$\(payment.fees)")
+                if let amount = payment.amount {
+                    DetailRow(label: "Amount", value: "$\(amount)")
+                }
+                if let to = payment.to {
+                    DetailRow(label: "Recipient", value: to)
+                }
+                if let fromAccount = payment.fromAccount {
+                    DetailRow(label: "From Account", value: fromAccount)
+                }
+                if let memo = payment.memo {
+                    DetailRow(label: "Memo", value: memo)
+                }
+                if let method = payment.method {
+                    DetailRow(label: "Method", value: method.rawValue.capitalized)
+                }
+                if let fees = payment.fees {
+                    DetailRow(label: "Fees", value: "$\(fees)")
+                }
             }
         }
         .padding()
@@ -142,25 +159,38 @@ struct PaymentResultView: View {
             }
             
             VStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Confirmation Number")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text(result.confirmationNumber)
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .fontDesign(.monospaced)
-                        .foregroundColor(.green)
+                if let confirmationNumber = result.confirmationNumber {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Confirmation Number")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Text(confirmationNumber)
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .fontDesign(.monospaced)
+                            .foregroundColor(.green)
+                    }
                 }
                 
                 Divider()
                 
                 VStack(spacing: 8) {
-                    DetailRow(label: "New Account Balance", value: "$\(result.newBalance)")
-                    DetailRow(label: "Estimated Completion", value: DateFormatter.iso8601.date(from: result.estimatedCompletion)?.formatted(date: .abbreviated, time: .shortened))
-                    DetailRow(label: "Amount Sent", value: "$\(result.payment.amount)")
-                    DetailRow(label: "Sent To", value: result.payment.to)
+                    if let newBalance = result.newBalance {
+                        DetailRow(label: "New Account Balance", value: "$\(newBalance)")
+                    }
+                    if let estimatedCompletion = result.estimatedCompletion,
+                       let date = DateFormatter.iso8601.date(from: estimatedCompletion) {
+                        DetailRow(label: "Estimated Completion", value: date.formatted(date: .abbreviated, time: .shortened))
+                    }
+                    if let payment = result.payment,
+                       let amount = payment.amount {
+                        DetailRow(label: "Amount Sent", value: "$\(amount)")
+                    }
+                    if let payment = result.payment,
+                       let to = payment.to {
+                        DetailRow(label: "Sent To", value: to)
+                    }
                 }
             }
         }
