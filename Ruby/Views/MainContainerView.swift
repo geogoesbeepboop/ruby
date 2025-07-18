@@ -8,6 +8,7 @@ struct MainContainerView: View {
     enum Tab: String, CaseIterable {
         case home = "Home"
         case chat = "Chat"
+        case actions = "Actions"
         
         var systemImage: String {
             switch self {
@@ -15,6 +16,8 @@ struct MainContainerView: View {
                 return "house.fill"
             case .chat:
                 return "message.fill"
+            case .actions:
+                return "slider.horizontal.3"
             }
         }
         
@@ -24,6 +27,8 @@ struct MainContainerView: View {
                 return "house"
             case .chat:
                 return "message"
+            case .actions:
+                return "slider.horizontal.3"
             }
         }
     }
@@ -48,6 +53,14 @@ struct MainContainerView: View {
                 Text(Tab.chat.rawValue)
             }
             .tag(Tab.chat)
+            
+            // Actions Tab
+            ActionsView()
+                .tabItem {
+                    Image(systemName: selectedTab == .actions ? Tab.actions.systemImage : Tab.actions.inactiveSystemImage)
+                    Text(Tab.actions.rawValue)
+                }
+                .tag(Tab.actions)
         }
         .tint(Color.brandPrimary)
         .onAppear {

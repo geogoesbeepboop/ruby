@@ -65,4 +65,36 @@ extension Color {
         return (0, 0, 0, 1) // Add macOS support if needed
         #endif
     }
+    
+    static let brandPrimary = lotusPrimary
+    
+    /// Secondary brand color - replaces #b016f7
+    static let brandSecondary = lotusDark
+    
+    /// Highlight/accent color - replaces #f7e6ff
+    static let brandHighlight = lotusHighlight
+    
+    /// Accent color for interactive elements
+    static let brandAccent = lotusAccent
+    
+    /// App background color
+    static let appBackground = lotusBackground
+    
+    /// Secondary text color
+    static let textSecondary = lotusSecondary
+    
+    // MARK: - Gradient Combinations
+    /// Primary gradient for buttons and highlights
+    static let brandGradient = LinearGradient(
+        colors: [brandPrimary, brandSecondary],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    /// Subtle highlight gradient
+    static let highlightGradient = LinearGradient(
+        colors: [brandHighlight, brandAccent],
+        startPoint: .top,
+        endPoint: .bottom
+    )
 }

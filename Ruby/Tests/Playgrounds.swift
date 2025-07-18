@@ -13,20 +13,21 @@ import FoundationModels
     var settings = ChatSettings.default
 
     let languageSession = LanguageModelSession(tools: [
-        WeatherTool(),
-        WebSearchTool(httpClient: httpClient),
-        CalculatorTool(),
-        ReminderTool(),
-        DateTimeTool(),
+        WeatherTool()
+//        WebSearchTool(httpClient: httpClient),
+//        CalculatorTool(),
+//        ReminderTool(),
+//        DateTimeTool(),
 //                ScienceFactsTool(httpClient: httpClient),
-        NewsTool(httpClient: httpClient),
+//        NewsTool(httpClient: httpClient),
 //                QuotesTool(httpClient: httpClient)
-    ],
-    instructions: settings.selectedPersona.systemPrompt)
+    ]
+//    ,instructions: settings.selectedPersona.systemPrompt
+    )
     
     do {
         let response = try await languageSession.respond(
-            to: "Whats the weather in charlotte, nc ? use the WeatherTool to answer"
+            to: "Create an itinerary to San Fransisco for 1 week?TT"
         )
     } catch {
         

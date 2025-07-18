@@ -14,6 +14,6 @@ struct ChatResponse {
     @Guide(description: "Emotional tone of the response")
     let tone: String
     
-    @Guide(description:"Confidence level in the response accuracy with a range of 0.0 to 1.0")
+    @Guide(description:"Confidence level in the response accuracy", .range(0.0...1.0))
     let confidence: Double
 }

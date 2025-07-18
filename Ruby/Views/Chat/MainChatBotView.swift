@@ -19,7 +19,6 @@ struct MainChatBotView: View {
             // Main content with state transitions
             GeometryReader { geometry in
                 ZStack {
-                    // Only use ActiveChatStateView for all states
                     ActiveChatStateView()
                         .transition(.opacity)                    
                     // Error overlay
@@ -33,9 +32,6 @@ struct MainChatBotView: View {
             }
         }
         .environment(chatStore)
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-        }
         .task {
             await chatStore.initializeAI()
         }
