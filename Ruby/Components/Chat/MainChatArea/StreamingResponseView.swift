@@ -129,35 +129,6 @@ struct StreamingResponseView: View {
 }
 
 @available(iOS 26.0, *)
-struct ConfidenceIndicator: View {
-    let confidence: Double
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "gauge.medium")
-                .foregroundColor(confidenceColor)
-                .font(.caption)
-            
-            Text("\(Int(confidence * 100))%")
-                .contentTransition(.numericText())
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(confidenceColor)
-        }
-    }
-    
-    private var confidenceColor: Color {
-        if confidence >= 0.8 {
-            return .green
-        } else if confidence >= 0.6 {
-            return .orange
-        } else {
-            return .red
-        }
-    }
-}
-
-@available(iOS 26.0, *)
 struct ConversationTurnStreamingView: View {
     let turn: ConversationTurn.PartiallyGenerated
     

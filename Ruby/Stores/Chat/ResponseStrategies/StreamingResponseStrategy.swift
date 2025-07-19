@@ -58,7 +58,7 @@ final class StreamingResponseStrategy: ObservableObject, ResponseStrategy {
             let responseTime = Date().timeIntervalSince(responseStartTime)
             
             guard let finalChatResponse = partialResponse?.content else {
-                throw ChatError.responseGenerationFailed
+                throw ChatError.other
             }
             
             logger.info("🏁 [StreamingStrategy] Streaming completed, total chunks: \(chunkCount)")
@@ -80,10 +80,14 @@ final class StreamingResponseStrategy: ObservableObject, ResponseStrategy {
             logger.info("✅ [StreamingStrategy] Streaming response generated successfully")
             return chatMessage
             
+        } catch let error as LanguageModelSession.GenerationError {
+            logger.error("❌ [StreamingStrategy] LanguageModelSession error: \(error.localizedDescription)")
+            handleGenerationError(error)
+            throw mapGenerationError(error)
         } catch {
             logger.error("❌ [StreamingStrategy] Streaming failed: \(error.localizedDescription)")
             setError("Streaming response failed: \(error.localizedDescription)")
-            throw ChatError.responseGenerationFailed
+            throw ChatError.other
         }
     }
     
@@ -106,5 +110,66 @@ final class StreamingResponseStrategy: ObservableObject, ResponseStrategy {
         logger.error("❌ [StreamingStrategy] Setting error state: \(error)")
         errorMessage = error
         isProcessing = false
+    }
+    
+    private func handleGenerationError(_ error: LanguageModelSession.GenerationError) {
+        switch error {
+        case .exceededContextWindowSize(let context):
+            presentGenerationError(error, context: context)
+            
+        case .assetsUnavailable(let context):
+            presentGenerationError(error, context: context)
+     
+        case .guardrailViolation(let context):
+            presentGenerationError(error, context: context)
+     
+        case .unsupportedGuide(let context):
+            presentGenerationError(error, context: context)
+     
+        case .unsupportedLanguageOrLocale(let context):
+            presentGenerationError(error, context: context)
+            
+        case .decodingFailure(let context):
+            presentGenerationError(error, context: context)
+            
+        case .rateLimited(let context):
+            presentGenerationError(error, context: context)
+            
+        default:
+            logger.error("❌ [StreamingStrategy] Unhandled generation error: \(error.localizedDescription)")
+        }
+    }
+     
+    private func presentGenerationError(_ error: LanguageModelSession.GenerationError,
+                                       context: LanguageModelSession.GenerationError.Context) {
+        let errorDetails = """
+            Failed to respond: \(error.localizedDescription).
+            Failure reason: \(String(describing: error.failureReason)).
+            Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+            Context: \(String(describing: context))
+            """
+        logger.error("❌ [StreamingStrategy] \(errorDetails)")
+        setError(error.localizedDescription)
+    }
+    
+    private func mapGenerationError(_ error: LanguageModelSession.GenerationError) -> ChatError {
+        switch error {
+        case .exceededContextWindowSize:
+            return ChatError.exceededContextWindowSize(error)
+        case .assetsUnavailable:
+            return ChatError.assetsUnavailable(error)
+        case .guardrailViolation:
+            return ChatError.guardrailViolation(error)
+        case .unsupportedGuide:
+            return ChatError.unsupportedGuide(error)
+        case .unsupportedLanguageOrLocale :
+            return ChatError.unsupportedLanguageOrLocale(error)
+        case .decodingFailure :
+            return ChatError.decodingFailure(error)
+        case .rateLimited :
+            return ChatError.rateLimited(error)
+        default:
+            return ChatError.other
+        }
     }
 }

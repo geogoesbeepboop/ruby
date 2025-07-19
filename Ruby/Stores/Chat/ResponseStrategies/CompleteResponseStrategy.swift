@@ -32,6 +32,7 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
             logger.info("🌊 [CompleteStrategy] Using streamResponse for consistent streaming behavior")
             
             // For now, use input directly - conversation history context is handled by LanguageModelSession
+            
             let responseStream = session.streamResponse(
                 to: input,
                 generating: ChatResponse.self,
@@ -76,10 +77,19 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
             logger.info("✅ [CompleteStrategy] Complete response generated successfully")
             return chatMessage
             
+        } catch let error as LanguageModelSession.GenerationError {
+            logger.error("❌ [CompleteStrategy] LanguageModelSession error: \(error.localizedDescription)")
+            handleGenerationError(error)
+            throw mapGenerationError(error)
         } catch {
             logger.error("❌ [CompleteStrategy] Complete response failed: \(error.localizedDescription)")
             setError("Complete response failed: \(error.localizedDescription)")
-            throw ChatError.responseGenerationFailed
+            let chatMessage = ChatMessage(
+                content: "Unknown error",
+                isUser: false,
+                timestamp: Date()
+            )
+            return chatMessage
         }
     }
     
@@ -102,5 +112,66 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
         logger.error("❌ [CompleteStrategy] Setting error state: \(error)")
         errorMessage = error
         isProcessing = false
+    }
+    
+    private func handleGenerationError(_ error: LanguageModelSession.GenerationError) {
+        switch error {
+        case .exceededContextWindowSize(let context):
+            presentGenerationError(error, context: context)
+            
+        case .assetsUnavailable(let context):
+            presentGenerationError(error, context: context)
+     
+        case .guardrailViolation(let context):
+            presentGenerationError(error, context: context)
+     
+        case .unsupportedGuide(let context):
+            presentGenerationError(error, context: context)
+     
+        case .unsupportedLanguageOrLocale(let context):
+            presentGenerationError(error, context: context)
+            
+        case .decodingFailure(let context):
+            presentGenerationError(error, context: context)
+            
+        case .rateLimited(let context):
+            presentGenerationError(error, context: context)
+            
+        default:
+            logger.error("❌ [CompleteStrategy] Unhandled generation error: \(error.localizedDescription)")
+        }
+    }
+     
+    private func presentGenerationError(_ error: LanguageModelSession.GenerationError,
+                                       context: LanguageModelSession.GenerationError.Context) {
+        let errorDetails = """
+            Failed to respond: \(error.localizedDescription).
+            Failure reason: \(String(describing: error.failureReason)).
+            Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+            Context: \(String(describing: context))
+            """
+        logger.error("❌ [CompleteStrategy] \(errorDetails)")
+        setError(error.localizedDescription)
+    }
+    
+    private func mapGenerationError(_ error: LanguageModelSession.GenerationError) -> ChatError {
+        switch error {
+        case .exceededContextWindowSize:
+            return ChatError.exceededContextWindowSize(error)
+        case .assetsUnavailable:
+            return ChatError.assetsUnavailable(error)
+        case .guardrailViolation:
+            return ChatError.guardrailViolation(error)
+        case .unsupportedGuide:
+            return ChatError.unsupportedGuide(error)
+        case .unsupportedLanguageOrLocale :
+            return ChatError.unsupportedLanguageOrLocale(error)
+        case .decodingFailure :
+            return ChatError.decodingFailure(error)
+        case .rateLimited :
+            return ChatError.rateLimited(error)
+        default:
+            return ChatError.other
+        }
     }
 }

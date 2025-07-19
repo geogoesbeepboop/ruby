@@ -8,50 +8,58 @@ import SwiftUI
 
 struct SparkleEffect: View {
     @State private var sparkles: [SparkleData] = []
-    @State private var animationTimer: Timer?
+    @State private var animationPhase: Double = 0
+    @State private var isActive: Bool = false
 
     private struct SparkleData: Identifiable {
         let id = UUID()
-        var position: CGPoint
-        var targetPosition: CGPoint
+        var basePosition: CGPoint
+        var baseOpacity: Double
         let size: CGFloat
-        var opacity: Double
-        var targetOpacity: Double
-        let duration: Double
-        let delay: Double
+        let animationOffset: CGPoint
+        let opacityRange: (min: Double, max: Double)
+        let phaseOffset: Double
+        let speed: Double
     }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 ForEach(sparkles) { sparkle in
+                    let currentOpacity = sparkle.baseOpacity + 
+                        (sparkle.opacityRange.max - sparkle.opacityRange.min) * 
+                        sin(animationPhase * sparkle.speed + sparkle.phaseOffset) * 0.5
+                    
+                    let currentPosition = CGPoint(
+                        x: sparkle.basePosition.x + sparkle.animationOffset.x * sin(animationPhase * sparkle.speed + sparkle.phaseOffset),
+                        y: sparkle.basePosition.y + sparkle.animationOffset.y * cos(animationPhase * sparkle.speed + sparkle.phaseOffset * 0.7)
+                    )
+                    
                     Image(systemName: "sparkle")
                         .font(.system(size: sparkle.size))
                         .foregroundColor(.white)
-                        .opacity(sparkle.opacity)
-                        .position(sparkle.position)
-                        .animation(
-                            .easeInOut(duration: sparkle.duration)
-                                .delay(sparkle.delay)
-                                .repeatForever(autoreverses: false),
-                            value: sparkle.opacity
-                        )
-                        .animation(
-                            .easeInOut(duration: sparkle.duration)
-                                .delay(sparkle.delay),
-                            value: sparkle.position
-                        )
+                        .opacity(max(0, min(1, currentOpacity)))
+                        .position(currentPosition)
                 }
             }
             .onAppear {
                 generateSparkles(in: geometry.size)
-                startContinuousAnimation()
+                isActive = true
             }
             .onDisappear {
-                stopAnimation()
+                isActive = false
             }
             .onChange(of: geometry.size) { _, newSize in
                 generateSparkles(in: newSize)
+            }
+            .onChange(of: isActive) { _, active in
+                if active {
+                    withAnimation(.linear(duration: 8.0).repeatForever(autoreverses: false)) {
+                        animationPhase = .pi * 2
+                    }
+                } else {
+                    animationPhase = 0
+                }
             }
         }
         .allowsHitTesting(false) // Allow touch events to pass through sparkles
@@ -63,24 +71,25 @@ struct SparkleEffect: View {
         sparkles = (0..<12).compactMap { index in
             guard let safeArea = safeAreas.randomElement() else { return nil }
             
-            let position = CGPoint(
+            let basePosition = CGPoint(
                 x: CGFloat.random(in: safeArea.minX...safeArea.maxX),
                 y: CGFloat.random(in: safeArea.minY...safeArea.maxY)
             )
             
-            let targetPosition = CGPoint(
-                x: CGFloat.random(in: safeArea.minX...safeArea.maxX),
-                y: CGFloat.random(in: safeArea.minY...safeArea.maxY)
-            )
+            let minOpacity = Double.random(in: 0.2...0.4)
+            let maxOpacity = Double.random(in: 0.6...0.9)
             
             return SparkleData(
-                position: position,
-                targetPosition: targetPosition,
-                size: CGFloat.random(in: 10.8...21.6), // Increased by 35%
-                opacity: 0.0,
-                targetOpacity: Double.random(in: 0.4...0.9),
-                duration: Double.random(in: 2.0...4.0),
-                delay: Double(index) * 0.2
+                basePosition: basePosition,
+                baseOpacity: (minOpacity + maxOpacity) / 2,
+                size: CGFloat.random(in: 10.8...21.6),
+                animationOffset: CGPoint(
+                    x: CGFloat.random(in: -20...20),
+                    y: CGFloat.random(in: -15...15)
+                ),
+                opacityRange: (min: minOpacity, max: maxOpacity),
+                phaseOffset: Double(index) * 0.5,
+                speed: Double.random(in: 0.5...1.2)
             )
         }
     }
@@ -123,87 +132,5 @@ struct SparkleEffect: View {
                 height: screenSize.height - (padding * 2)
             )
         ].filter { $0.width > 0 && $0.height > 0 }
-    }
-    
-    private func startContinuousAnimation() {
-        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            animateSparkles()
-        }
-    }
-    
-    private func stopAnimation() {
-        animationTimer?.invalidate()
-        animationTimer = nil
-    }
-    
-    private func animateSparkles() {
-        for index in sparkles.indices {
-            withAnimation(.easeInOut(duration: sparkles[index].duration)) {
-                // Animate opacity
-                if sparkles[index].opacity < sparkles[index].targetOpacity {
-                    sparkles[index].opacity = min(
-                        sparkles[index].opacity + 0.05,
-                        sparkles[index].targetOpacity
-                    )
-                } else {
-                    sparkles[index].opacity = max(
-                        sparkles[index].opacity - 0.02,
-                        0.0
-                    )
-                    
-                    // When opacity reaches 0, regenerate the sparkle
-                    if sparkles[index].opacity <= 0.1 {
-                        regenerateSparkle(at: index)
-                    }
-                }
-                
-                // Animate position
-                let dx = sparkles[index].targetPosition.x - sparkles[index].position.x
-                let dy = sparkles[index].targetPosition.y - sparkles[index].position.y
-                let distance = sqrt(dx * dx + dy * dy)
-                
-                if distance > 5 {
-                    let speed: CGFloat = 1.0
-                    sparkles[index].position.x += (dx / distance) * speed
-                    sparkles[index].position.y += (dy / distance) * speed
-                } else {
-                    // Reached target, set new target
-                    setNewTarget(for: index)
-                }
-            }
-        }
-    }
-    
-    private func regenerateSparkle(at index: Int) {
-        guard let geometry = sparkles.first else { return }
-        
-        // Get screen size (approximate)
-        let screenSize = CGSize(width: 400, height: 800) // Will be updated by geometry reader
-        let safeAreas = getSafeSparkleAreas(screenSize: screenSize)
-        
-        guard let safeArea = safeAreas.randomElement() else { return }
-        
-        let newPosition = CGPoint(
-            x: CGFloat.random(in: safeArea.minX...safeArea.maxX),
-            y: CGFloat.random(in: safeArea.minY...safeArea.maxY)
-        )
-        
-        sparkles[index].position = newPosition
-        sparkles[index].targetOpacity = Double.random(in: 0.4...0.9)
-        sparkles[index].opacity = 0.0
-        setNewTarget(for: index)
-    }
-    
-    private func setNewTarget(for index: Int) {
-        // Get screen size (approximate)
-        let screenSize = CGSize(width: 400, height: 800) // Will be updated by geometry reader
-        let safeAreas = getSafeSparkleAreas(screenSize: screenSize)
-        
-        guard let safeArea = safeAreas.randomElement() else { return }
-        
-        sparkles[index].targetPosition = CGPoint(
-            x: CGFloat.random(in: safeArea.minX...safeArea.maxX),
-            y: CGFloat.random(in: safeArea.minY...safeArea.maxY)
-        )
     }
 }

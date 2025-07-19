@@ -12,6 +12,23 @@ struct ErrorOverlay: View {
     let dismissAction: () -> Void
     @State private var isVisible = false
     
+    private var errorTitle: String {
+        switch error {
+        case .guardrailViolation:
+            return "Content Warning"
+        case .exceededContextWindowSize:
+            return "Conversation Too Long"
+        case .rateLimited:
+            return "Rate Limited"
+        case .assetsUnavailable:
+            return "AI Unavailable"
+        case .decodingFailure:
+            return "Processing Error"
+        default:
+            return "Error"
+        }
+    }
+    
     var body: some View {
         VStack {
             Spacer()
@@ -27,14 +44,22 @@ struct ErrorOverlay: View {
                         .foregroundStyle(.red)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Error")
+                        Text(errorTitle)
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
                             .foregroundStyle(.primary)
                         
                         Text(error.localizedDescription)
                             .font(.system(size: 12, weight: .medium, design: .rounded))
                             .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                            .lineLimit(3)
+                        
+                        if let suggestion = error.recoverySuggestion {
+                            Text(suggestion)
+                                .font(.system(size: 11, weight: .regular, design: .rounded))
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(2)
+                                .padding(.top, 2)
+                        }
                     }
                     
                     Spacer()
@@ -46,7 +71,7 @@ struct ErrorOverlay: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.vertical, 14)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 100)

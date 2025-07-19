@@ -32,8 +32,11 @@ final class ChatSessionManager {
     func startNewSession(with persona: AIPersona) async {
         logger.info("🆕 [ChatSessionManager] Starting new chat session")
         
-        // For in-memory operation, no need to save before starting new session
-        // Current session will be replaced and previous data is intentionally lost
+        // Save current session before starting new one (background)
+        if let currentSession = currentSession {
+            logger.debug("💾 [ChatSessionManager] Saving previous session before starting new one")
+            await saveCurrentSessionSafely()
+        }
         
         // Create new session
         let newSession = ConversationSession(
@@ -56,8 +59,11 @@ final class ChatSessionManager {
     func loadSession(_ session: ConversationSession) async {
         logger.info("📁 [ChatSessionManager] Loading session: \(session.id)")
         
-        // For in-memory operation, no need to save when switching sessions
-        // Previous session data is intentionally lost
+        // Save current session before switching (background)
+        if let currentSession = currentSession {
+            logger.debug("💾 [ChatSessionManager] Saving current session before switching")
+            await saveCurrentSessionSafely()
+        }
         
         currentSession = session
         
@@ -103,7 +109,9 @@ final class ChatSessionManager {
         session.lastModified = Date()
         currentSession = session
         
-        // For in-memory operation, no immediate save needed
+        // Save after title update (background)
+        logger.debug("💾 [ChatSessionManager] Saving session after title update")
+        await saveCurrentSessionSafely()
     }
     
     func updateSessionPersona(_ persona: AIPersona) async {
@@ -130,9 +138,29 @@ final class ChatSessionManager {
     }
     
     private func saveCurrentSessionSafely() async {
-        logger.debug("💭 [ChatSessionManager] Save skipped - in-memory only operation")
-        // For in-memory operation, we don't save sessions to avoid blocking
-        // All session data exists only in memory during app session
+        guard let session = currentSession else { 
+            logger.debug("💭 [ChatSessionManager] No current session to save")
+            return 
+        }
+        
+        logger.debug("💭 [ChatSessionManager] Saving current session in background")
+        
+        // Use detached task to ensure non-blocking background save
+        Task.detached(priority: .background) { [weak self, session] in
+            await MainActor.run {
+                Task {
+                    do {
+                        try await self?.dataManager.saveSession(session)
+                        self?.logger.debug("✅ [ChatSessionManager] Session saved successfully in background")
+                        
+                        // Refresh saved sessions to update sidebar
+                        await self?.loadSavedSessions()
+                    } catch {
+                        self?.logger.error("❌ [ChatSessionManager] Background save failed: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
     }
     
     private func defaultGreetingMessage(for persona: AIPersona) -> ChatMessage {
@@ -192,7 +220,7 @@ extension ChatSessionManager {
             let session = try decoder.decode(ConversationSession.self, from: data)
             
             // Save imported session
-            try dataManager.saveSession(session)
+            try await dataManager.saveSession(session)
             
             // Add to saved sessions
             savedSessions.insert(session, at: 0)
@@ -201,7 +229,6 @@ extension ChatSessionManager {
             
         } catch {
             logger.error("❌ [ChatSessionManager] Failed to import session: \(error.localizedDescription)")
-            throw ChatError.loadFailed
         }
     }
     
@@ -219,7 +246,6 @@ extension ChatSessionManager {
             
         } catch {
             logger.error("❌ [ChatSessionManager] Failed to clear all data: \(error.localizedDescription)")
-            throw ChatError.saveFailed
         }
     }
 }

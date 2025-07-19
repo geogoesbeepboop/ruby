@@ -70,10 +70,19 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
             logger.info("✅ [StructuredStrategy] Structured response generated successfully")
             return chatMessage
             
+        } catch let error as LanguageModelSession.GenerationError {
+            logger.error("❌ [StructuredStrategy] LanguageModelSession error: \(error.localizedDescription)")
+            handleGenerationError(error)
+            throw mapGenerationError(error)
         } catch {
             logger.error("❌ [StructuredStrategy] Structured response failed: \(error.localizedDescription)")
             setError("Structured response failed: \(error.localizedDescription)")
-            throw ChatError.responseGenerationFailed
+            let chatMessage = ChatMessage(
+                content: "Unknown error message",
+                isUser: false,
+                timestamp: Date()
+            )
+            return chatMessage
         }
     }
     
@@ -96,5 +105,66 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
         logger.error("❌ [StructuredStrategy] Setting error state: \(error)")
         errorMessage = error
         isProcessing = false
+    }
+    
+    private func handleGenerationError(_ error: LanguageModelSession.GenerationError) {
+        switch error {
+        case .exceededContextWindowSize(let context):
+            presentGenerationError(error, context: context)
+            
+        case .assetsUnavailable(let context):
+            presentGenerationError(error, context: context)
+     
+        case .guardrailViolation(let context):
+            presentGenerationError(error, context: context)
+     
+        case .unsupportedGuide(let context):
+            presentGenerationError(error, context: context)
+     
+        case .unsupportedLanguageOrLocale(let context):
+            presentGenerationError(error, context: context)
+            
+        case .decodingFailure(let context):
+            presentGenerationError(error, context: context)
+            
+        case .rateLimited(let context):
+            presentGenerationError(error, context: context)
+            
+        default:
+            logger.error("❌ [StructuredStrategy] Unhandled generation error: \(error.localizedDescription)")
+        }
+    }
+     
+    private func presentGenerationError(_ error: LanguageModelSession.GenerationError,
+                                       context: LanguageModelSession.GenerationError.Context) {
+        let errorDetails = """
+            Failed to respond: \(error.localizedDescription).
+            Failure reason: \(String(describing: error.failureReason)).
+            Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+            Context: \(String(describing: context))
+            """
+        logger.error("❌ [StructuredStrategy] \(errorDetails)")
+        setError(error.localizedDescription)
+    }
+    
+    private func mapGenerationError(_ error: LanguageModelSession.GenerationError) -> ChatError {
+        switch error {
+        case .exceededContextWindowSize:
+            return ChatError.exceededContextWindowSize(error)
+        case .assetsUnavailable(let context):
+            return ChatError.assetsUnavailable(error)
+        case .guardrailViolation(let context):
+            return ChatError.guardrailViolation(error)
+        case .unsupportedGuide(let context):
+            return ChatError.unsupportedGuide(error)
+        case .decodingFailure(let context):
+            return ChatError.decodingFailure(error)
+        case .unsupportedLanguageOrLocale(let context):
+            return ChatError.unsupportedLanguageOrLocale(error)
+        case .rateLimited(let context):
+            return ChatError.rateLimited(error)
+        default:
+            return ChatError.other
+        }
     }
 }

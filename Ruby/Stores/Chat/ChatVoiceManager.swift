@@ -45,7 +45,7 @@ final class ChatVoiceManager {
             try setupVoiceRecording()
         } else {
             logger.error("❌ [ChatVoiceManager] Speech recognition permission denied")
-            throw ChatError.permissionDenied
+            throw ChatError.other
         }
     }
     
@@ -88,13 +88,13 @@ final class ChatVoiceManager {
         guard let audioEngine = audioEngine,
               let speechRecognizer = speechRecognizer else {
             logger.error("❌ [ChatVoiceManager] Failed to initialize audio components")
-            throw ChatError.voiceRecognitionFailed
+            throw ChatError.other
         }
         
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         guard let recognitionRequest = recognitionRequest else {
             logger.error("❌ [ChatVoiceManager] Failed to create recognition request")
-            throw ChatError.voiceRecognitionFailed
+            throw ChatError.other
         }
         
         recognitionRequest.shouldReportPartialResults = true

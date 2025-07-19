@@ -136,7 +136,7 @@ final class ChatUIManager {
             logger.info("💾 [ChatUIManager] Settings saved successfully")
         } catch {
             logger.error("❌ [ChatUIManager] Failed to save settings: \(error.localizedDescription)")
-            setError(.saveFailed)
+            setError(.other)
         }
     }
     

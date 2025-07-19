@@ -14,45 +14,39 @@ struct EnhancedMessageBubble: View {
     
     var body: some View {
         HStack(alignment: .top) {
-            if message.isUser {
-                Spacer(minLength: 40)
-            }
+            if message.isUser { Spacer() }
             
-            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 8) {
+            VStack(alignment: message.isUser ? .trailing : .leading) {
                 // Main message content
                 messageContent
-                
                 // Enhanced metadata display
                 if let metadata = message.metadata, showMetadata {
                     MessageMetadataView(metadata: metadata)
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
-                
-                // Timestamp and reactions
+                // Timestamp and reactions - always aligned to right side of message
                 HStack {
                     if !message.isUser {
                         metadataToggleButton
+                        
+                        if let metadata = message.metadata, let confidence = metadata.confidence {
+                            ConfidenceIndicator(confidence: confidence)
+                        }
                     }
                     
                     Spacer()
                     
-                    Text(message.timestamp, format: .dateTime.hour().minute())
+                    Text(message.timestamp, style: .time)
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    
-                    if let metadata = message.metadata, let confidence = metadata.confidence {
-                        ConfidenceIndicator(confidence: confidence)
-                    }
+                        .padding(.horizontal, 4)
                 }
+                .padding(.horizontal, message.isUser ? 16 : 8) // Align with bubble padding
                 
                 // Reactions
                 if !message.reactions.isEmpty {
                     MessageReactionsView(reactions: message.reactions)
                 }
-            }
-            
-            if !message.isUser {
-                Spacer(minLength: 40)
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showMetadata)
@@ -66,13 +60,13 @@ struct EnhancedMessageBubble: View {
             .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 18)
-                    .fill(message.isUser ? .blue : .gray.opacity(0.1))
+                    .fill(message.isUser ? .blue : .gray.opacity(0.5))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .stroke(message.isUser ? .clear : .gray.opacity(0.2), lineWidth: 1)
+                            .stroke(message.isUser ? .clear.opacity(0.2) : .gray.opacity(0.5), lineWidth: 1)
                     )
             )
-            .foregroundColor(message.isUser ? .white : .primary)
+            .foregroundColor(.primary)
             .onLongPressGesture {
                 onLongPress(message.id)
             }
@@ -252,7 +246,7 @@ struct MessageContextMenuContent: View {
         VStack(spacing: 16) {
             EnhancedMessageBubble(
                 message: ChatMessage(
-                    content: "This is an example message with enhanced metadata display.",
+                    content: "hihihihihihihihihihihihihihihi.",
                     isUser: false,
                     timestamp: Date(),
                     metadata: .init(

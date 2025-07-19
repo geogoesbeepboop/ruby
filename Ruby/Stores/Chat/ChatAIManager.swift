@@ -46,7 +46,6 @@ final class ChatAIManager {
             logger.info("✅ [ChatAIManager] AI initialization completed successfully")
         } catch {
             logger.error("❌ [ChatAIManager] AI initialization failed: \(error.localizedDescription)")
-            throw ChatError.sessionInitializationFailed
         }
     }
     
@@ -74,7 +73,7 @@ final class ChatAIManager {
         logger.info("🤖 [ChatAIManager] Generating response using strategy pattern")
         
         guard isInitialized, let session = languageSession else {
-            throw ChatError.sessionInitializationFailed
+            throw ChatError.other
         }
         
         isProcessing = true
@@ -147,7 +146,7 @@ final class ChatAIManager {
             
         } catch {
             logger.error("❌ [ChatAIManager] Failed to generate session title: \(error.localizedDescription)")
-            throw ChatError.responseGenerationFailed
+            throw ChatError.other
         }
     }
     

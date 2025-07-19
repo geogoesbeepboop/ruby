@@ -12,7 +12,7 @@ struct MaterialBackground: View {
 
     init(
         colors: [Color] = [
-            Color.brandHighlight, Color.brandPrimary, Color.brandSecondary,
+        Color.brandPrimary
         ],
         intensity: Double = 1.0
     ) {
@@ -30,15 +30,15 @@ struct MaterialBackground: View {
             )
 
             // Animated overlay gradient
-            RadialGradient(
-                colors: [
-                    colors[1].opacity(0.3 * intensity),
-                    Color.clear,
-                ],
-                center: .center,
-                startRadius: 100,
-                endRadius: 400
-            )
+//            RadialGradient(
+//                colors: [
+//                    colors[1].opacity(0.3 * intensity),
+//                    Color.clear,
+//                ],
+//                center: .center,
+//                startRadius: 100,
+//                endRadius: 400
+//            )
             .scaleEffect(1.5)
             .animation(
                 .easeInOut(duration: 4)

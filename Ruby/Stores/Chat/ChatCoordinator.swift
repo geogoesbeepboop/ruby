@@ -59,7 +59,7 @@ final class ChatCoordinator {
             
         } catch {
             logger.error("❌ [ChatCoordinator] Initialization failed: \(error.localizedDescription)")
-            uiManager.setError(.sessionInitializationFailed)
+            uiManager.setError(.other)
         }
     }
     
@@ -116,7 +116,7 @@ final class ChatCoordinator {
             
         } catch {
             logger.error("❌ [ChatCoordinator] Failed to delete session: \(error.localizedDescription)")
-            uiManager.setError(.saveFailed)
+            uiManager.setError(.other)
         }
     }
     
@@ -170,7 +170,7 @@ final class ChatCoordinator {
             uiManager.setState(.voiceListening)
         } catch {
             logger.error("❌ [ChatCoordinator] Failed to start voice recording: \(error.localizedDescription)")
-            uiManager.setError(.voiceRecognitionFailed)
+            uiManager.setError(.other)
         }
     }
     
@@ -242,7 +242,7 @@ final class ChatCoordinator {
             
         } catch {
             logger.error("❌ [ChatCoordinator] AI response failed: \(error.localizedDescription)")
-            uiManager.setError(.responseGenerationFailed)
+            uiManager.setError(.other)
         }
     }
     
@@ -305,7 +305,7 @@ final class ChatCoordinator {
             logger.info("✅ [ChatCoordinator] Session imported successfully")
         } catch {
             logger.error("❌ [ChatCoordinator] Failed to import session: \(error.localizedDescription)")
-            uiManager.setError(.loadFailed)
+            uiManager.setError(.other)
         }
     }
     
@@ -318,7 +318,7 @@ final class ChatCoordinator {
             logger.info("✅ [ChatCoordinator] All data cleared successfully")
         } catch {
             logger.error("❌ [ChatCoordinator] Failed to clear all data: \(error.localizedDescription)")
-            uiManager.setError(.saveFailed)
+            uiManager.setError(.other)
         }
     }
     

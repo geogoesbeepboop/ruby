@@ -18,8 +18,8 @@ struct ActiveChatStateView: View {
         GeometryReader { geometry in
             ZStack {
                 // Background
-                MaterialBackground(intensity: 0.6)
-                    .ignoresSafeArea()
+//                MaterialBackground(intensity: 0.6)
+//                    .ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     // Chat header
