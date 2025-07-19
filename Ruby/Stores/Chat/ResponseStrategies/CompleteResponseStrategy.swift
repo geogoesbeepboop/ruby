@@ -14,6 +14,7 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
     func generateResponse(
         for input: String,
         using session: LanguageModelSession,
+        context: ResponseContext,
         onPartialUpdate: @escaping (String) -> Void
     ) async throws -> ChatMessage {
         logger.info("📄 [CompleteStrategy] Starting complete response generation with streaming")
@@ -28,54 +29,89 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
         do {
             let responseStartTime = Date()
             
-            // Use streamResponse even for "complete" strategy to maintain consistency
-            logger.info("🌊 [CompleteStrategy] Using streamResponse for consistent streaming behavior")
-            
-            // For now, use input directly - conversation history context is handled by LanguageModelSession
-            
-            let responseStream = session.streamResponse(
-                to: input,
-                generating: ChatResponse.self,
-                includeSchemaInPrompt: true,
-                options: GenerationOptions(
-                    temperature: 0.7,  // Increased for more natural responses
-                    maximumResponseTokens: 1200  // Increased for longer responses
-                )
-            )
-            
-            var finalResponse: ChatResponse?
-            
-            for try await partialChatResponse in responseStream {
-                partialResponse = partialChatResponse
+            // Use plain text response for .none persona, structured for others
+            if context.persona == .none {
+                logger.info("🤖 [CompleteStrategy] Using plain text response for Base Model persona")
                 
-                // Call partial update with the current content if available
-                if let content = partialChatResponse.content {
-                    onPartialUpdate(content)
-                }
-            }
-            
-            let responseTime = Date().timeIntervalSince(responseStartTime)
-            logger.info("📥 [CompleteStrategy] Structured response generated in \(String(format: "%.2f", responseTime))s")
-            logger.info("🎭 [CompleteStrategy] Detected tone: '\(self.partialResponse?.tone as NSObject?)'")
-            logger.info("📊 [CompleteStrategy] Confidence score: \(String(format: "%.2f", self.partialResponse?.confidence ?? "N/A"))")
-            
-            let chatMessage = ChatMessage(
-                content: partialResponse?.content ?? "No Content",
-                isUser: false,
-                timestamp: Date(),
-                metadata: .init(
-                    processingTime: responseTime,
-                    tokens: partialResponse?.content?.count, // Approximate token count
-                    confidence: partialResponse?.confidence,
-                    tone: partialResponse?.tone,
-                    category: partialResponse?.category?.rawValue,
-                    topics: partialResponse?.topics,
-                    requiresFollowUp: partialResponse?.requiresFollowUp
+                let responseStream = session.streamResponse(
+                    to: input,
+                    options: GenerationOptions(
+                        temperature: 0.7,
+                        maximumResponseTokens: 1200
+                    )
                 )
-            )
-            
-            logger.info("✅ [CompleteStrategy] Complete response generated successfully")
-            return chatMessage
+                
+                var accumulatedContent = ""
+                
+                for try await textChunk in responseStream {
+                    accumulatedContent += textChunk
+                    onPartialUpdate(accumulatedContent)
+                }
+                
+                let responseTime = Date().timeIntervalSince(responseStartTime)
+                
+                logger.info("📥 [CompleteStrategy] Plain text response generated in \(String(format: "%.2f", responseTime))s")
+                
+                let chatMessage = ChatMessage(
+                    content: accumulatedContent,
+                    isUser: false,
+                    timestamp: Date(),
+                    metadata: .init(
+                        processingTime: responseTime,
+                        tokens: accumulatedContent.count,
+                        confidence: nil
+                    )
+                )
+                
+                logger.info("✅ [CompleteStrategy] Plain text complete response generated successfully")
+                return chatMessage
+                
+            } else {
+                logger.info("🎯 [CompleteStrategy] Using structured response for persona: \(context.persona.rawValue)")
+                
+                let responseStream = session.streamResponse(
+                    to: input,
+                    generating: ChatResponse.self,
+                    includeSchemaInPrompt: true,
+                    options: GenerationOptions(
+                        temperature: 0.7,
+                        maximumResponseTokens: 1200
+                    )
+                )
+                
+                
+                for try await partialChatResponse in responseStream {
+                    partialResponse = partialChatResponse
+                    
+                    // Call partial update with the current content if available
+                    if let content = partialChatResponse.content {
+                        onPartialUpdate(content)
+                    }
+                }
+                
+                let responseTime = Date().timeIntervalSince(responseStartTime)
+                logger.info("📥 [CompleteStrategy] Structured response generated in \(String(format: "%.2f", responseTime))s")
+                logger.info("🎭 [CompleteStrategy] Detected tone: '\(self.partialResponse?.tone as NSObject?)'")
+                logger.info("📊 [CompleteStrategy] Confidence score: \(String(format: "%.2f", self.partialResponse?.confidence ?? "N/A"))")
+                
+                let chatMessage = ChatMessage(
+                    content: partialResponse?.content ?? "No Content",
+                    isUser: false,
+                    timestamp: Date(),
+                    metadata: .init(
+                        processingTime: responseTime,
+                        tokens: partialResponse?.content?.count,
+                        confidence: partialResponse?.confidence,
+                        tone: partialResponse?.tone,
+                        category: partialResponse?.category?.rawValue,
+                        topics: partialResponse?.topics,
+                        requiresFollowUp: partialResponse?.requiresFollowUp
+                    )
+                )
+                
+                logger.info("✅ [CompleteStrategy] Structured complete response generated successfully")
+                return chatMessage
+            }
             
         } catch let error as LanguageModelSession.GenerationError {
             logger.error("❌ [CompleteStrategy] LanguageModelSession error: \(error.localizedDescription)")

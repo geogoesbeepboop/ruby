@@ -96,6 +96,7 @@ final class ChatAIManager {
             let response = try await strategy.createStrategy().generateResponse(
                 for: input,
                 using: session,
+                context: context,
                 onPartialUpdate: wrappedPartialUpdate
             )
             

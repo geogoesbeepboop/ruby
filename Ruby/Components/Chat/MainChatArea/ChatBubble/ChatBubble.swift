@@ -57,14 +57,10 @@ struct ChatBubble<Content: View>: View {
                     }
                 }
 
-                HStack {
-                    Spacer()
-                    Text(timestamp, style: .time)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 4)
-                }
-                .padding(.horizontal, 8) // Align with bubble padding
+                Text(timestamp, style: .time)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 4)
             }
 
             if !isUser { Spacer() }

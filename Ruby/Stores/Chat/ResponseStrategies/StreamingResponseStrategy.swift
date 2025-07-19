@@ -14,6 +14,7 @@ final class StreamingResponseStrategy: ObservableObject, ResponseStrategy {
     func generateResponse(
         for input: String,
         using session: LanguageModelSession,
+        context: ResponseContext,
         onPartialUpdate: @escaping (String) -> Void
     ) async throws -> ChatMessage {
         logger.info("🌊 [StreamingStrategy] Starting streaming response generation")
@@ -27,58 +28,108 @@ final class StreamingResponseStrategy: ObservableObject, ResponseStrategy {
         do {
             let responseStartTime = Date()
             
-            let responseStream = session.streamResponse(
-                to: input,
-                generating: ChatResponse.self,
-                includeSchemaInPrompt: true,
-                options: GenerationOptions(
-                    temperature: 0.7,
-                    maximumResponseTokens: 1200
-                )
-            )
-            
-            var chunkCount = 0
-            
-            for try await partialChatResponse in responseStream {
-                chunkCount += 1
-                partialResponse = partialChatResponse
+            // Use plain text response for .none persona, structured for others
+            if context.persona == .none {
+                logger.info("🤖 [StreamingStrategy] Using plain text response for Base Model persona")
                 
-                // Call partial update with the current content if available
-                if let content = partialChatResponse.content {
-                    onPartialUpdate(content)
+                let responseStream = session.streamResponse(
+                    to: input,
+                    options: GenerationOptions(
+                        temperature: 0.7,
+                        maximumResponseTokens: 1200
+                    )
+                )
+                
+                var accumulatedContent = ""
+                var chunkCount = 0
+                
+                for try await textChunk in responseStream {
+                    chunkCount += 1
+                    accumulatedContent += textChunk
+                    onPartialUpdate(accumulatedContent)
+                    
+                    if chunkCount == 1 {
+                        logger.debug("📝 [StreamingStrategy] First chunk received")
+                    } else if chunkCount % 10 == 0 {
+                        logger.debug("📊 [StreamingStrategy] Received \(chunkCount) chunks")
+                    }
                 }
                 
-                if chunkCount == 1 {
-                    logger.debug("📝 [StreamingStrategy] First chunk received")
-                } else if chunkCount % 10 == 0 {
-                    logger.debug("📊 [StreamingStrategy] Received \(chunkCount) chunks")
-                }
-            }
-            
-            let responseTime = Date().timeIntervalSince(responseStartTime)
-            
-            guard let finalChatResponse = partialResponse?.content else {
-                throw ChatError.other
-            }
-            
-            logger.info("🏁 [StreamingStrategy] Streaming completed, total chunks: \(chunkCount)")
-            logger.info("📥 [StreamingStrategy] Final response generated in \(String(format: "%.2f", responseTime))s")
-            logger.info("🎭 [StreamingStrategy] Detected tone: '\(self.partialResponse?.tone as NSObject?)'")
-            logger.info("📊 [StreamingStrategy] Confidence score: \(String(format: "%.2f", self.partialResponse?.confidence ?? "N/A"))")
-            
-            let chatMessage = ChatMessage(
-                content: partialResponse?.content ?? "No Content",
-                isUser: false,
-                timestamp: Date(),
-                metadata: .init(
-                    processingTime: responseTime,
-                    tokens: nil,
-                    confidence: partialResponse?.confidence
+                let responseTime = Date().timeIntervalSince(responseStartTime)
+                
+                logger.info("🏁 [StreamingStrategy] Plain text streaming completed, total chunks: \(chunkCount)")
+                logger.info("📥 [StreamingStrategy] Final response generated in \(String(format: "%.2f", responseTime))s")
+                
+                let chatMessage = ChatMessage(
+                    content: accumulatedContent,
+                    isUser: false,
+                    timestamp: Date(),
+                    metadata: .init(
+                        processingTime: responseTime,
+                        tokens: accumulatedContent.count,
+                        confidence: nil
+                    )
                 )
-            )
-            
-            logger.info("✅ [StreamingStrategy] Streaming response generated successfully")
-            return chatMessage
+                
+                logger.info("✅ [StreamingStrategy] Plain text streaming response generated successfully")
+                return chatMessage
+                
+            } else {
+                logger.info("🎯 [StreamingStrategy] Using structured response for persona: \(context.persona.rawValue)")
+                
+                let responseStream = session.streamResponse(
+                    to: input,
+                    generating: ChatResponse.self,
+                    includeSchemaInPrompt: true,
+                    options: GenerationOptions(
+                        temperature: 0.7,
+                        maximumResponseTokens: 1200
+                    )
+                )
+                
+                var chunkCount = 0
+                
+                for try await partialChatResponse in responseStream {
+                    chunkCount += 1
+                    partialResponse = partialChatResponse
+                    
+                    // Call partial update with the current content if available
+                    if let content = partialChatResponse.content {
+                        onPartialUpdate(content)
+                    }
+                    
+                    if chunkCount == 1 {
+                        logger.debug("📝 [StreamingStrategy] First chunk received")
+                    } else if chunkCount % 10 == 0 {
+                        logger.debug("📊 [StreamingStrategy] Received \(chunkCount) chunks")
+                    }
+                }
+                
+                let responseTime = Date().timeIntervalSince(responseStartTime)
+                
+                guard let finalChatResponse = partialResponse?.content else {
+                    throw ChatError.other
+                }
+                
+                logger.info("🏁 [StreamingStrategy] Structured streaming completed, total chunks: \(chunkCount)")
+                logger.info("📥 [StreamingStrategy] Final response generated in \(String(format: "%.2f", responseTime))s")
+                logger.info("🎭 [StreamingStrategy] Detected tone: '\(self.partialResponse?.tone as NSObject?)'")
+                logger.info("📊 [StreamingStrategy] Confidence score: \(String(format: "%.2f", self.partialResponse?.confidence ?? "N/A"))")
+                
+                let chatMessage = ChatMessage(
+                    content: partialResponse?.content ?? "No Content",
+                    isUser: false,
+                    timestamp: Date(),
+                    metadata: .init(
+                        processingTime: responseTime,
+                        tokens: nil,
+                        confidence: partialResponse?.confidence
+                    )
+                )
+                
+                logger.info("✅ [StreamingStrategy] Structured streaming response generated successfully")
+                return chatMessage
+            }
             
         } catch let error as LanguageModelSession.GenerationError {
             logger.error("❌ [StreamingStrategy] LanguageModelSession error: \(error.localizedDescription)")

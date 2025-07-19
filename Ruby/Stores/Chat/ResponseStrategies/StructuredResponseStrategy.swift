@@ -14,6 +14,7 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
     func generateResponse(
         for input: String,
         using session: LanguageModelSession,
+        context: ResponseContext,
         onPartialUpdate: @escaping (String) -> Void
     ) async throws -> ChatMessage {
         logger.info("🎯 [StructuredStrategy] Starting structured response generation with multi-phase streaming")
@@ -27,48 +28,87 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
         do {
             let responseStartTime = Date()
             
-            // Use ConversationTurn for more comprehensive structured analysis
-            logger.info("🔄 [StructuredStrategy] PHASE 1: Streaming conversation turn analysis")
-            let conversationTurnStream = session.streamResponse(
-                to: input,
-                generating: ConversationTurn.self,
-                includeSchemaInPrompt: true,
-                options: GenerationOptions(
-                    temperature: 0.2,
-                    maximumResponseTokens: 1000
-                )
-            )
-            
-            for try await partialConversationTurn in conversationTurnStream {
-                partialResponse = partialConversationTurn
+            // Use plain text response for .none persona, structured for others
+            if context.persona == .none {
+                logger.info("🤖 [StructuredStrategy] Using plain text response for Base Model persona")
                 
-                // Call partial update with the current response content if available
-                if let responseContent = partialConversationTurn.response?.content {
-                    onPartialUpdate(responseContent)
-                }
-            }
-            
-            let responseTime = Date().timeIntervalSince(responseStartTime)
-            
-            logger.info("📥 [StructuredStrategy] Structured conversation turn generated in \(String(format: "%.2f", responseTime))s")
-            logger.info("🎭 [StructuredStrategy] User intent: '\(self.partialResponse?.userAnalysis?.intent?.rawValue as NSObject?)'")
-            logger.info("📊 [StructuredStrategy] Input complexity: \(self.partialResponse?.userAnalysis?.complexity as NSObject?)/5")
-            logger.info("🎭 [StructuredStrategy] Response tone: '\(self.partialResponse?.response?.tone as NSObject?)'")
-            logger.info("📊 [StructuredStrategy] Response confidence: \(String(format: "%.2f", self.partialResponse?.response?.confidence ?? "N/A"))")
-            
-            let chatMessage = ChatMessage(
-                content: partialResponse?.response?.content ?? "No Content",
-                isUser: false,
-                timestamp: Date(),
-                metadata: .init(
-                    processingTime: responseTime,
-                    tokens: partialResponse?.metadata?.estimatedTokens,
-                    confidence: partialResponse?.response?.confidence
+                let responseStream = session.streamResponse(
+                    to: input,
+                    options: GenerationOptions(
+                        temperature: 0.2,
+                        maximumResponseTokens: 1000
+                    )
                 )
-            )
-            
-            logger.info("✅ [StructuredStrategy] Structured response generated successfully")
-            return chatMessage
+                
+                var accumulatedContent = ""
+                
+                for try await textChunk in responseStream {
+                    accumulatedContent += textChunk
+                    onPartialUpdate(accumulatedContent)
+                }
+                
+                let responseTime = Date().timeIntervalSince(responseStartTime)
+                
+                logger.info("📥 [StructuredStrategy] Plain text response generated in \(String(format: "%.2f", responseTime))s")
+                
+                let chatMessage = ChatMessage(
+                    content: accumulatedContent,
+                    isUser: false,
+                    timestamp: Date(),
+                    metadata: .init(
+                        processingTime: responseTime,
+                        tokens: accumulatedContent.count,
+                        confidence: nil
+                    )
+                )
+                
+                logger.info("✅ [StructuredStrategy] Plain text structured response generated successfully")
+                return chatMessage
+                
+            } else {
+                logger.info("🎯 [StructuredStrategy] Using ConversationTurn analysis for persona: \(context.persona.rawValue)")
+                
+                let conversationTurnStream = session.streamResponse(
+                    to: input,
+                    generating: ConversationTurn.self,
+                    includeSchemaInPrompt: true,
+                    options: GenerationOptions(
+                        temperature: 0.2,
+                        maximumResponseTokens: 1000
+                    )
+                )
+                
+                for try await partialConversationTurn in conversationTurnStream {
+                    partialResponse = partialConversationTurn
+                    
+                    // Call partial update with the current response content if available
+                    if let responseContent = partialConversationTurn.response?.content {
+                        onPartialUpdate(responseContent)
+                    }
+                }
+                
+                let responseTime = Date().timeIntervalSince(responseStartTime)
+                
+                logger.info("📥 [StructuredStrategy] Structured conversation turn generated in \(String(format: "%.2f", responseTime))s")
+                logger.info("🎭 [StructuredStrategy] User intent: '\(self.partialResponse?.userAnalysis?.intent?.rawValue as NSObject?)'")
+                logger.info("📊 [StructuredStrategy] Input complexity: \(self.partialResponse?.userAnalysis?.complexity as NSObject?)/5")
+                logger.info("🎭 [StructuredStrategy] Response tone: '\(self.partialResponse?.response?.tone as NSObject?)'")
+                logger.info("📊 [StructuredStrategy] Response confidence: \(String(format: "%.2f", self.partialResponse?.response?.confidence ?? "N/A"))")
+                
+                let chatMessage = ChatMessage(
+                    content: partialResponse?.response?.content ?? "No Content",
+                    isUser: false,
+                    timestamp: Date(),
+                    metadata: .init(
+                        processingTime: responseTime,
+                        tokens: partialResponse?.metadata?.estimatedTokens,
+                        confidence: partialResponse?.response?.confidence
+                    )
+                )
+                
+                logger.info("✅ [StructuredStrategy] Structured response generated successfully")
+                return chatMessage
+            }
             
         } catch let error as LanguageModelSession.GenerationError {
             logger.error("❌ [StructuredStrategy] LanguageModelSession error: \(error.localizedDescription)")

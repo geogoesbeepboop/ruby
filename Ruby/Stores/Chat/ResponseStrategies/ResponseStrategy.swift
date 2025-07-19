@@ -8,6 +8,7 @@ protocol ResponseStrategy: ObservableObject {
     func generateResponse(
         for input: String,
         using session: LanguageModelSession,
+        context: ResponseContext,
         onPartialUpdate: @escaping (String) -> Void
     ) async throws -> ChatMessage
 }
