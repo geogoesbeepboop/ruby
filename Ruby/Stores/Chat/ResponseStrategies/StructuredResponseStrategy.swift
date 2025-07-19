@@ -76,13 +76,7 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
             throw mapGenerationError(error)
         } catch {
             logger.error("❌ [StructuredStrategy] Structured response failed: \(error.localizedDescription)")
-            setError("Structured response failed: \(error.localizedDescription)")
-            let chatMessage = ChatMessage(
-                content: "Unknown error message",
-                isUser: false,
-                timestamp: Date()
-            )
-            return chatMessage
+            throw ChatError.other
         }
     }
     
@@ -144,12 +138,11 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
             Context: \(String(describing: context))
             """
         logger.error("❌ [StructuredStrategy] \(errorDetails)")
-        setError(error.localizedDescription)
     }
     
     private func mapGenerationError(_ error: LanguageModelSession.GenerationError) -> ChatError {
         switch error {
-        case .exceededContextWindowSize:
+        case .exceededContextWindowSize(let context):
             return ChatError.exceededContextWindowSize(error)
         case .assetsUnavailable(let context):
             return ChatError.assetsUnavailable(error)
@@ -163,7 +156,7 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
             return ChatError.unsupportedLanguageOrLocale(error)
         case .rateLimited(let context):
             return ChatError.rateLimited(error)
-        default:
+        @unknown default:
             return ChatError.other
         }
     }

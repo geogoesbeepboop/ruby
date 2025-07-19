@@ -83,13 +83,7 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
             throw mapGenerationError(error)
         } catch {
             logger.error("❌ [CompleteStrategy] Complete response failed: \(error.localizedDescription)")
-            setError("Complete response failed: \(error.localizedDescription)")
-            let chatMessage = ChatMessage(
-                content: "Unknown error",
-                isUser: false,
-                timestamp: Date()
-            )
-            return chatMessage
+            throw ChatError.other
         }
     }
     
@@ -151,26 +145,25 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
             Context: \(String(describing: context))
             """
         logger.error("❌ [CompleteStrategy] \(errorDetails)")
-        setError(error.localizedDescription)
     }
     
     private func mapGenerationError(_ error: LanguageModelSession.GenerationError) -> ChatError {
         switch error {
-        case .exceededContextWindowSize:
+        case .exceededContextWindowSize(_):
             return ChatError.exceededContextWindowSize(error)
-        case .assetsUnavailable:
+        case .assetsUnavailable(_):
             return ChatError.assetsUnavailable(error)
-        case .guardrailViolation:
+        case .guardrailViolation(_):
             return ChatError.guardrailViolation(error)
-        case .unsupportedGuide:
+        case .unsupportedGuide(_):
             return ChatError.unsupportedGuide(error)
-        case .unsupportedLanguageOrLocale :
+        case .unsupportedLanguageOrLocale(_):
             return ChatError.unsupportedLanguageOrLocale(error)
-        case .decodingFailure :
+        case .decodingFailure(_):
             return ChatError.decodingFailure(error)
-        case .rateLimited :
+        case .rateLimited(_):
             return ChatError.rateLimited(error)
-        default:
+        @unknown default:
             return ChatError.other
         }
     }

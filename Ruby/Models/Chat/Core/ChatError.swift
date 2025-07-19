@@ -8,58 +8,65 @@ import Foundation
 import FoundationModels
 
 enum ChatError: LocalizedError {
-    case exceededContextWindowSize(_ error: LanguageModelSession.GenerationError, _ context: LanguageModelSession.GenerationError.Context? = nil)
-    case assetsUnavailable(_ error: LanguageModelSession.GenerationError, _ context: LanguageModelSession.GenerationError.Context? = nil)
-    case guardrailViolation(_ error: LanguageModelSession.GenerationError, _ context: LanguageModelSession.GenerationError.Context? = nil)
-    case unsupportedGuide(_ error: LanguageModelSession.GenerationError, _ context: LanguageModelSession.GenerationError.Context? = nil)
-    case unsupportedLanguageOrLocale(_ error: LanguageModelSession.GenerationError, _ context: LanguageModelSession.GenerationError.Context? = nil)
-    case decodingFailure(_ error: LanguageModelSession.GenerationError, _ context: LanguageModelSession.GenerationError.Context? = nil)
-    case rateLimited(_ error: LanguageModelSession.GenerationError, _ context: LanguageModelSession.GenerationError.Context? = nil)
+    case exceededContextWindowSize(_ error: LanguageModelSession.GenerationError)
+    case assetsUnavailable(_ error: LanguageModelSession.GenerationError)
+    case guardrailViolation(_ error: LanguageModelSession.GenerationError)
+    case unsupportedGuide(_ error: LanguageModelSession.GenerationError)
+    case unsupportedLanguageOrLocale(_ error: LanguageModelSession.GenerationError)
+    case decodingFailure(_ error: LanguageModelSession.GenerationError)
+    case rateLimited(_ error: LanguageModelSession.GenerationError)
     case other
     
     var errorDescription: String? {
         switch self {
-        case .exceededContextWindowSize(let context, let error):
+        case .exceededContextWindowSize(let error):
             return """
                 Failed to respond: Context window size exceeded.
-                Failure context: \(String(describing: context)).
-                Failure error: \(String(describing: error)).
+                Failure reason: \(String(describing: error.failureReason)).
+                Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+                Error details: \(error.localizedDescription)
                 """
-        case .assetsUnavailable(let context, let error):
+        case .assetsUnavailable(let error):
             return """
                 Failed to respond: Required AI assets are currently unavailable.
-                Failure context: \(String(describing: context)).
-                Failure error: \(String(describing: error)).
+                Failure reason: \(String(describing: error.failureReason)).
+                Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+                Error details: \(error.localizedDescription)
                 """
-        case .guardrailViolation(let context, let error):
+        case .guardrailViolation(let error):
             return """
                 Failed to respond: Content detected likely to be unsafe.
-                Failure context: \(String(describing: context)).
-                Failure error: \(String(describing: error)).
-
+                Failure reason: \(String(describing: error.failureReason)).
+                Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+                Error details: \(error.localizedDescription)
                 """
-        case .unsupportedGuide(let context, let error):
+        case .unsupportedGuide(let error):
             return """
                 Failed to respond: Unsupported response format requested.
-                Failure context: \(String(describing: context)).
-                Failure error: \(String(describing: error)).
+                Failure reason: \(String(describing: error.failureReason)).
+                Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+                Error details: \(error.localizedDescription)
                 """
-        case .unsupportedLanguageOrLocale(let context, let error):
+        case .unsupportedLanguageOrLocale(let error):
             return """
                 Failed to respond: Language or locale not supported.
-                Failure context: \(String(describing: context)).
+                Failure reason: \(String(describing: error.failureReason)).
+                Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+                Error details: \(error.localizedDescription)
                 """
-        case .decodingFailure(let context, let error):
+        case .decodingFailure(let error):
             return """
                 Failed to respond: Failed to process AI response format.
-                Failure context: \(String(describing: context)).
-                Failure error: \(String(describing: error)).
+                Failure reason: \(String(describing: error.failureReason)).
+                Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+                Error details: \(error.localizedDescription)
                 """
-        case .rateLimited(let context, let error):
+        case .rateLimited(let error):
             return """
                 Failed to respond: Too many requests, please try again later.
-                Failure context: \(String(describing: context)).
-                Failure error: \(String(describing: error)).
+                Failure reason: \(String(describing: error.failureReason)).
+                Recovery suggestion: \(String(describing: error.recoverySuggestion)).
+                Error details: \(error.localizedDescription)
                 """
         case .other:
             return "An unknown error occurred."

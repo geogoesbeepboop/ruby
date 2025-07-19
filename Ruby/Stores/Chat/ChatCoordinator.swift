@@ -242,7 +242,11 @@ final class ChatCoordinator {
             
         } catch {
             logger.error("❌ [ChatCoordinator] AI response failed: \(error.localizedDescription)")
-            uiManager.setError(.other)
+            if let chatError = error as? ChatError {
+                uiManager.setError(chatError)
+            } else {
+                uiManager.setError(.other)
+            }
         }
     }
     

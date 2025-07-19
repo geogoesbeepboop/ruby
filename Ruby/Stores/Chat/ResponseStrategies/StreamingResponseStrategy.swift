@@ -86,7 +86,6 @@ final class StreamingResponseStrategy: ObservableObject, ResponseStrategy {
             throw mapGenerationError(error)
         } catch {
             logger.error("❌ [StreamingStrategy] Streaming failed: \(error.localizedDescription)")
-            setError("Streaming response failed: \(error.localizedDescription)")
             throw ChatError.other
         }
     }
@@ -149,26 +148,25 @@ final class StreamingResponseStrategy: ObservableObject, ResponseStrategy {
             Context: \(String(describing: context))
             """
         logger.error("❌ [StreamingStrategy] \(errorDetails)")
-        setError(error.localizedDescription)
     }
     
     private func mapGenerationError(_ error: LanguageModelSession.GenerationError) -> ChatError {
         switch error {
-        case .exceededContextWindowSize:
+        case .exceededContextWindowSize(let context):
             return ChatError.exceededContextWindowSize(error)
-        case .assetsUnavailable:
+        case .assetsUnavailable(let context):
             return ChatError.assetsUnavailable(error)
-        case .guardrailViolation:
+        case .guardrailViolation(let context):
             return ChatError.guardrailViolation(error)
-        case .unsupportedGuide:
+        case .unsupportedGuide(let context):
             return ChatError.unsupportedGuide(error)
-        case .unsupportedLanguageOrLocale :
+        case .unsupportedLanguageOrLocale(let context):
             return ChatError.unsupportedLanguageOrLocale(error)
-        case .decodingFailure :
+        case .decodingFailure(let context):
             return ChatError.decodingFailure(error)
-        case .rateLimited :
+        case .rateLimited(let context):
             return ChatError.rateLimited(error)
-        default:
+        @unknown default:
             return ChatError.other
         }
     }
