@@ -10,7 +10,7 @@ import FoundationModels
 @available(iOS 26.0, *)
 final class BalanceTool: Tool {
     let name = "BalanceTool"
-    let description = "Returns Balance information about user account balances"
+    let description = "Returns Balance information and details"
     
     @Generable
     struct Arguments {

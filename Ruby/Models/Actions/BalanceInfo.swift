@@ -36,7 +36,7 @@ final class BalanceInfo: ObservableObject {
         startLoading()
         
         do {
-            let prompt = Prompt("What's my balance in my primary bank account")
+            let prompt = Prompt("What's my current balance?'")
             print("📝 [BalanceInfo] Created balance prompt for LanguageModelSession")
             print("🤖 [BalanceInfo] Sending prompt to Apple Foundation Models...")
             

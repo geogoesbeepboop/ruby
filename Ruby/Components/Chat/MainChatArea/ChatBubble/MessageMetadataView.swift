@@ -45,6 +45,15 @@ struct MessageMetadataView: View {
                     valueColor: confidenceColor(confidence)
                 )
             }
+            
+            if let bankingAction = metadata.bankingAction {
+                MetadataRow(
+                    icon: bankingActionIcon(bankingAction),
+                    label: "Banking Action",
+                    value: bankingAction.rawValue.capitalized,
+                    valueColor: .brandPrimary
+                )
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -65,6 +74,15 @@ struct MessageMetadataView: View {
             return .orange
         } else {
             return .red
+        }
+    }
+    
+    private func bankingActionIcon(_ action: BankingActionType) -> String {
+        switch action {
+        case .balance:
+            return "creditcard.fill"
+        case .payment:
+            return "dollarsign.circle.fill"
         }
     }
 }

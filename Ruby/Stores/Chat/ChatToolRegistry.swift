@@ -28,7 +28,10 @@ final class ChatToolRegistry {
         logger.info("📋 [ChatToolRegistry] Registering default tools")
         
         let defaultTools: [any Tool] = [
-            WeatherTool()
+            WeatherTool(),
+            BalanceTool(),
+            PaymentTool(),
+            PaymentConfirmationTool()
 //            WebSearchTool(httpClient: httpClient),
 //            CalculatorTool(),
 //            ReminderTool(),
@@ -129,6 +132,13 @@ final class ChatToolRegistry {
         if settings.newsEnabled {
             enabledTools.insert("NewsTool")
         }
+        if settings.balanceEnabled {
+            enabledTools.insert("BalanceTool")
+        }
+        if settings.paymentEnabled {
+            enabledTools.insert("PaymentTool")
+            enabledTools.insert("PaymentConfirmationTool")
+        }
         
         logger.info("✅ [ChatToolRegistry] Tool settings configured, \(self.enabledTools.count) tools enabled")
     }
@@ -156,11 +166,13 @@ struct ToolSettings {
     var reminderEnabled: Bool = true
     var dateTimeEnabled: Bool = true
     var newsEnabled: Bool = true
+    var balanceEnabled: Bool = true
+    var paymentEnabled: Bool = true
     
     static let `default` = ToolSettings()
     
     var enabledCount: Int {
-        [weatherEnabled, webSearchEnabled, calculatorEnabled, reminderEnabled, dateTimeEnabled, newsEnabled]
+        [weatherEnabled, webSearchEnabled, calculatorEnabled, reminderEnabled, dateTimeEnabled, newsEnabled, balanceEnabled, paymentEnabled]
             .filter { $0 }.count
     }
 }

@@ -105,10 +105,7 @@ struct UnifiedChatBubble: View {
                         .foregroundStyle(.primary)
                         .textSelection(.enabled)
                         .animation(.easeInOut(duration: 0.3), value: displayContent)
-//                    Spacer()
                 }
-                
-//                Spacer()
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

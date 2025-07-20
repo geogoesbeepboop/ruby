@@ -14,11 +14,11 @@ struct PaymentProgressView: View {
         VStack(spacing: 16) {
             HStack {
                 Image(systemName: "clock.fill")
-                    .foregroundColor(.orange)
+                    .foregroundColor(.brandPrimary)
                 
                 Text("Processing Payment...")
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.brandSecondary)
                 
                 Spacer()
                 
@@ -36,27 +36,29 @@ struct PaymentProgressView: View {
                     HStack {
                         Text("Amount:")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.brandSecondary)
                         Spacer()
                         Text("$\(paymentAmount, specifier: "%.2f")")
                             .font(.caption)
                             .fontWeight(.medium)
+                            .foregroundColor(.brandSecondary)
                     }
                     
                     HStack {
                         Text("To:")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.brandSecondary)
                         Spacer()
                         Text(paymentTo)
                             .font(.caption)
                             .fontWeight(.medium)
+                            .foregroundColor(.brandSecondary)
                     }
                     
                     HStack {
                         Text("Status:")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.brandSecondary)
                         Spacer()
                         Text(paymentStatus)
                             .font(.caption)
@@ -67,12 +69,13 @@ struct PaymentProgressView: View {
                     HStack {
                         Text("Transaction ID:")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.brandSecondary)
                         Spacer()
                         Text(paymentTransactionId)
                             .font(.caption)
                             .fontWeight(.medium)
                             .fontDesign(.monospaced)
+                            .foregroundColor(.brandSecondary)
                     }
                 }
                 .padding(.top, 8)
@@ -102,7 +105,7 @@ struct PaymentDetailsView: View {
                 
                 Text("Payment Details")
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.brandSecondary)
                 
                 Spacer()
             }
@@ -153,7 +156,7 @@ struct PaymentResultView: View {
                 
                 Text("Payment Completed")
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.brandSecondary)
                 
                 Spacer()
             }
@@ -163,7 +166,7 @@ struct PaymentResultView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Confirmation Number")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.brandSecondary)
                         
                         Text(confirmationNumber)
                             .font(.title3)
@@ -258,7 +261,7 @@ struct DismissablePaymentView<Content: View>: View {
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.brandSecondary)
                         .background(
                             Circle()
                                 .fill(.ultraThinMaterial)
@@ -290,14 +293,14 @@ struct DetailRow: View {
         HStack {
             Text(label + ":")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(.brandSecondary)
             
             Spacer()
             
             Text(value)
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(.primary)
+                .foregroundColor(.brandSecondary)
         }
     }
 }

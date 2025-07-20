@@ -56,7 +56,7 @@ This document provides a comprehensive step-by-step walkthrough of how the Send 
 #### 3.2 Phase 1 - Payment Details Generation
 ```
 🔄 PHASE 1: Payment Details Streaming
-├── Creates Prompt: "Initiate Zelle payment: Send $50.00 to john@example.com..."
+├── Creates Prompt: "Initiate Zelle payment: Send $50.00 to charlie@example.com..."
 ├── Calls session.streamResponse():
 │   ├── generating: Payment.self (@Generable struct)
 │   ├── includeSchemaInPrompt: true

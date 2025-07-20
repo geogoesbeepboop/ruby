@@ -36,7 +36,7 @@ final class PaymentFlow: ObservableObject {
         startProcessing()
         
         do {
-            let prompt = Prompt("Initiate Zelle payment: Send $50.00 to john@example.com with memo 'Lunch money'")
+            let prompt = Prompt("Send 10 dollars to Charlie using my Zelle account")
             print("📝 [PaymentFlow] Created payment prompt for LanguageModelSession")
             print("🤖 [PaymentFlow] Sending prompt to Apple Foundation Models...")
             
@@ -47,8 +47,8 @@ final class PaymentFlow: ObservableObject {
                 generating: Payment.self,
                 includeSchemaInPrompt: true,
                 options: GenerationOptions(
-                    temperature: 0.1,
-                    maximumResponseTokens: 300
+                    temperature: 0.5,
+//                    maximumResponseTokens: 300
                 )
             )
             
@@ -67,8 +67,8 @@ final class PaymentFlow: ObservableObject {
                 generating: PaymentResult.self,
                 includeSchemaInPrompt: true,
                 options: GenerationOptions(
-                    temperature: 0.0,
-                    maximumResponseTokens: 400
+                    temperature: 0.5,
+//                    maximumResponseTokens: 400
                 )
             )
             

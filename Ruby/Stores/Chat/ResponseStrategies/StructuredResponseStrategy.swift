@@ -35,7 +35,7 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
                 let responseStream = session.streamResponse(
                     to: input,
                     options: GenerationOptions(
-                        temperature: 0.2,
+                        temperature: 0.5,
                         maximumResponseTokens: 1000
                     )
                 )
@@ -43,7 +43,7 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
                 var accumulatedContent = ""
                 
                 for try await textChunk in responseStream {
-                    accumulatedContent += textChunk
+                    accumulatedContent = textChunk
                     onPartialUpdate(accumulatedContent)
                 }
                 

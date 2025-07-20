@@ -9,8 +9,8 @@ import FoundationModels
 
 @available(iOS 26.0, *)
 final class PaymentTool: Tool {
-    let name = "PaymentTool"
-    let description = "Returns Payment information for a given payment"
+    let name = "TransactionsTool"
+    let description = "Use this tool to handle and validate user transactions"
     
     @Generable
     struct Arguments {
@@ -45,12 +45,25 @@ final class PaymentTool: Tool {
         
         let result = """
         Payment Validation Results:
+        
+        💰 Payment Details:
+        - Amount: $\(String(format: "%.2f", arguments.amount))
+        - Recipient: \(arguments.recipient)
+        - Method: \(arguments.method)
+        \(arguments.memo != nil ? "- Memo: \(arguments.memo!)" : "")
+        
+        🔒 Security Check:
         - Recipient validation: \(isValidRecipient ? "✅ Valid" : "❌ Invalid")
         - Processing fee: $\(String(format: "%.2f", fees))
         - Estimated processing time: \(processingTime)
         - Account status: \(accountStatus)
         - Daily limit remaining: $\(String(format: "%.2f", remainingLimit))
         - Security verification: ✅ Passed
+        
+        ⚠️ CONFIRMATION REQUIRED:
+        This payment is ready to process. To complete this transaction, please respond with "CONFIRM PAYMENT" or "CANCEL PAYMENT".
+        
+        Note: This is a simulated payment for demonstration purposes.
         """
         
         print("✅ [PaymentTool] Validation complete - returning results to LanguageModelSession")
@@ -61,7 +74,7 @@ final class PaymentTool: Tool {
     
     private func validateRecipient(_ recipient: String) -> Bool {
         // Mock validation - email format or phone format
-        let isValid = recipient.contains("@") || recipient.contains("+") || recipient.allSatisfy { $0.isNumber }
+        let isValid = recipient.contains("charlie") || recipient.contains("@") || recipient.contains("+") || recipient.allSatisfy { $0.isNumber }
         print("   🔍 Recipient validation: \(isValid ? "✅ Valid" : "❌ Invalid")")
         return isValid
     }

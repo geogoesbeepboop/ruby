@@ -6,6 +6,11 @@
 //
 import Foundation
 
+enum BankingActionType: String, Codable {
+    case balance = "balance"
+    case payment = "payment"
+}
+
 struct MessageMetadata: Codable {
     let processingTime: TimeInterval?
     let tokens: Int?
@@ -15,6 +20,9 @@ struct MessageMetadata: Codable {
     let topics: [String]?
     let requiresFollowUp: Bool?
     
+    // Banking-specific metadata
+    let bankingAction: BankingActionType?
+    
     init(
         processingTime: TimeInterval? = nil,
         tokens: Int? = nil,
@@ -22,7 +30,8 @@ struct MessageMetadata: Codable {
         tone: String? = nil,
         category: String? = nil,
         topics: [String]? = nil,
-        requiresFollowUp: Bool? = nil
+        requiresFollowUp: Bool? = nil,
+        bankingAction: BankingActionType? = nil
     ) {
         self.processingTime = processingTime
         self.tokens = tokens
@@ -31,5 +40,6 @@ struct MessageMetadata: Codable {
         self.category = category
         self.topics = topics
         self.requiresFollowUp = requiresFollowUp
+        self.bankingAction = bankingAction
     }
 }
