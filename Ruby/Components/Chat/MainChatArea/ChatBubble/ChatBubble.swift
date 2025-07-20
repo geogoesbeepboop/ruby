@@ -105,9 +105,10 @@ struct UnifiedChatBubble: View {
                         .foregroundStyle(.primary)
                         .textSelection(.enabled)
                         .animation(.easeInOut(duration: 0.3), value: displayContent)
+//                    Spacer()
                 }
                 
-                Spacer()
+//                Spacer()
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -238,22 +239,26 @@ struct TypingIndicator: View {
     @State private var isAnimating = false
     
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             ForEach(0..<3, id: \.self) { index in
                 Circle()
-                    .fill(.secondary)
-                    .frame(width: 6, height: 6)
-                    .scaleEffect(isAnimating ? 1.0 : 0.5)
+                    .fill(.secondary.opacity(0.7))
+                    .frame(width: 8, height: 8)
+                    .scaleEffect(isAnimating ? 1.2 : 0.6)
                     .animation(
-                        .easeInOut(duration: 0.6)
+                        .easeInOut(duration: 0.8)
                         .repeatForever(autoreverses: true)
-                        .delay(Double(index) * 0.2),
+                        .delay(Double(index) * 0.15),
                         value: isAnimating
                     )
             }
         }
+        .frame(width: 40, height: 20) // Compact frame
         .onAppear {
             isAnimating = true
+        }
+        .onDisappear {
+            isAnimating = false
         }
     }
 }
@@ -270,6 +275,7 @@ struct TypingIndicator: View {
 
 @available(iOS 26.0, *)
 #Preview("Unified Chat Bubbles") {
+    
     ScrollView {
         VStack(spacing: 16) {
             UnifiedChatBubble(
