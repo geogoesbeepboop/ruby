@@ -14,8 +14,28 @@ struct UnifiedChatBubble: View {
     let onLongPress: (UUID) -> Void
     let enhanced: Bool
     @State private var showMetadata = false
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     
     private let maxBubbleWidth = UIScreen.main.bounds.width * 0.75
+    
+    // Computed property to show streaming content for empty AI messages
+    private var displayContent: String {
+        // Show streaming content for empty AI messages during streaming
+        if !message.isUser && message.content.isEmpty,
+           let streamingContent = chatCoordinator.aiManager.streamingContent,
+           !streamingContent.isEmpty {
+            return streamingContent
+        }
+        return message.content
+    }
+    
+    // Check if this is an actively streaming message
+    private var isActivelyStreaming: Bool {
+        return !message.isUser && 
+               message.content.isEmpty && 
+               chatCoordinator.uiManager.currentState == .streaming &&
+               (chatCoordinator.aiManager.streamingContent?.isEmpty ?? true)
+    }
     
     var body: some View {
         HStack(alignment: .top) {
@@ -74,13 +94,23 @@ struct UnifiedChatBubble: View {
             blurRadius: 8,
             opacity: message.isUser ? 0.6 : 0.2
         ) {
-            Text(message.content)
-                .font(.system(size: 16, weight: .regular, design: .default))
-                .foregroundStyle(.primary)
-                .textSelection(.enabled)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .animation(.easeInOut(duration: 0.3), value: message.content)
+            HStack(alignment: .top) {
+                if displayContent.isEmpty && isActivelyStreaming {
+                    // Show typing indicator for empty streaming messages
+                    TypingIndicator()
+                } else {
+                    Text(displayContent)
+                        .contentTransition(.opacity)
+                        .font(.system(size: 16, weight: .regular, design: .default))
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                        .animation(.easeInOut(duration: 0.3), value: displayContent)
+                }
+                
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
         .background {
             if message.isUser {
@@ -201,7 +231,42 @@ struct ChatBubble<Content: View>: View {
     }
 }
 
+// MARK: - Supporting Components
+
+@available(iOS 26.0, *)
+struct TypingIndicator: View {
+    @State private var isAnimating = false
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .fill(.secondary)
+                    .frame(width: 6, height: 6)
+                    .scaleEffect(isAnimating ? 1.0 : 0.5)
+                    .animation(
+                        .easeInOut(duration: 0.6)
+                        .repeatForever(autoreverses: true)
+                        .delay(Double(index) * 0.2),
+                        value: isAnimating
+                    )
+            }
+        }
+        .onAppear {
+            isAnimating = true
+        }
+    }
+}
+
 // MARK: - Previews
+@available(iOS 26.0, *)
+#Preview("Typing Indicator") {
+    ScrollView {
+        VStack(spacing: 16) {
+            TypingIndicator()
+        }
+    }
+}
 
 @available(iOS 26.0, *)
 #Preview("Unified Chat Bubbles") {

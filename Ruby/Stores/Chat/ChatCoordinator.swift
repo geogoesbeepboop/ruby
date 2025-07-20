@@ -222,6 +222,10 @@ final class ChatCoordinator {
                 settings: uiManager.settings
             )
             
+            // Add empty AI message immediately for streaming display
+            let streamingMessage = ChatMessage(content: "", isUser: false, timestamp: Date())
+            uiManager.addMessage(streamingMessage)
+            
             // Set streaming state immediately for all strategies that support it
             if context.recommendedStrategy == .streaming || context.recommendedStrategy == .complete || context.recommendedStrategy == .structured {
                 uiManager.setState(.streaming)
@@ -234,7 +238,14 @@ final class ChatCoordinator {
                 // Streaming updates are handled by the AI manager's streamingContent property
             }
             
-            uiManager.addMessage(response)
+            // Replace the empty streaming message with the final response
+            if let lastMessageIndex = uiManager.messages.lastIndex(where: { $0.id == streamingMessage.id }) {
+                uiManager.messages[lastMessageIndex] = response
+            } else {
+                // Fallback: just add the response if we can't find the streaming message
+                uiManager.addMessage(response)
+            }
+            
             await sessionManager.updateSessionMessages(uiManager.messages)
             uiManager.setState(.activeChat)
             
