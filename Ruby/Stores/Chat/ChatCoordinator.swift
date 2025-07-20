@@ -213,8 +213,6 @@ final class ChatCoordinator {
     private func generateAIResponse(for input: String) async {
         logger.info("🤖 [ChatCoordinator] Generating AI response using strategy pattern")
         
-        uiManager.setState(.aiThinking)
-        
         do {
             // Create response context
             let context = ResponseContext(
@@ -224,8 +222,8 @@ final class ChatCoordinator {
                 settings: uiManager.settings
             )
             
-            // Set appropriate state based on strategy
-            if context.recommendedStrategy == .streaming {
+            // Set streaming state immediately for all strategies that support it
+            if context.recommendedStrategy == .streaming || context.recommendedStrategy == .complete || context.recommendedStrategy == .structured {
                 uiManager.setState(.streaming)
             }
             

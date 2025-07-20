@@ -32,9 +32,6 @@ struct MainChatBotView: View {
             }
         }
         .environment(chatCoordinator)
-        .task {
-            // Initialization is handled automatically by ChatCoordinator
-        }
         .onChange(of: scenePhase) { _, newPhase in
             handleScenePhaseChange(newPhase)
         }

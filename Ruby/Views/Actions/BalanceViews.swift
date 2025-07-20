@@ -264,3 +264,116 @@ struct AccountBalanceRow: View {
         )
     }
 }
+
+// MARK: - Dismissable Wrapper Views
+
+@available(iOS 26.0, *)
+struct DismissableBalanceView<Content: View>: View {
+    let content: Content
+    let onDismiss: () -> Void
+    
+    @State private var dragOffset: CGSize = .zero
+    @State private var isVisible = true
+    
+    init(@ViewBuilder content: () -> Content, onDismiss: @escaping () -> Void) {
+        self.content = content()
+        self.onDismiss = onDismiss
+    }
+    
+    var body: some View {
+        if isVisible {
+            ZStack(alignment: .topTrailing) {
+                content
+                    .offset(dragOffset)
+                    .opacity(1.0 - abs(dragOffset.width) / CGFloat(300))
+                    .scaleEffect(1 - abs(dragOffset.width) / 1000)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                dragOffset = value.translation
+                            }
+                            .onEnded { value in
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    if abs(value.translation.width) > 100 || abs(value.predictedEndTranslation.width) > 200 {
+                                        // Dismiss with animation
+                                        dragOffset = CGSize(width: value.translation.width > 0 ? 400 : -400, height: 0)
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                            dismissPanel()
+                                        }
+                                    } else {
+                                        // Snap back
+                                        dragOffset = .zero
+                                    }
+                                }
+                            }
+                    )
+                
+                // X button
+                Button(action: {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        dismissPanel()
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                        .background(
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                        )
+                }
+                .padding(8)
+                .buttonStyle(PlainButtonStyle())
+            }
+            .transition(.asymmetric(
+                insertion: .scale.combined(with: .opacity),
+                removal: .scale.combined(with: .opacity)
+            ))
+        }
+    }
+    
+    private func dismissPanel() {
+        isVisible = false
+        onDismiss()
+    }
+}
+
+// MARK: - Previews
+
+//@available(iOS 26.0, *)
+//#Preview("Dismissable Balance Views") {
+//    ScrollView {
+//        VStack(spacing: 20) {
+//            DismissableBalanceView(
+//                content: {
+//                    BalanceLoadingView()
+//                },
+//                onDismiss: { print("Balance loading dismissed") }
+//            )
+//            
+//            DismissableBalanceView(
+//                content: {
+//                    BalancesSummaryView(balances: BalancesSummary.PartiallyGenerated(
+//                        totalLiquidAssets: 5450.75,
+//                        totalAvailableCredit: 15000.00,
+//                        accounts: [
+//                            AccountBalance.PartiallyGenerated(
+//                                accountName: "Checking Account",
+//                                accountType: .checking,
+//                                currentBalance: 2500.50,
+//                                availableBalance: 2500.50,
+//                                accountId: "CHK001",
+//                                status: .active,
+//                                lastUpdated: "2024-01-15T10:30:00Z",
+//                                pendingAmount: 0
+//                            )
+//                        ],
+//                        alerts: ["Low balance alert for Savings Account"]
+//                    ))
+//                },
+//                onDismiss: { print("Balance summary dismissed") }
+//            )
+//        }
+//        .padding()
+//    }
+//}

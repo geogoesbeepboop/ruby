@@ -40,7 +40,7 @@ struct ResponseContext {
     let messageCount: Int
     let settings: ChatSettings    
     var shouldUseStreaming: Bool {
-        return settings.streamingEnabled && input.count > 50
+        return settings.streamingEnabled
     }
     
     var shouldUseStructured: Bool {

@@ -153,7 +153,7 @@ final class ChatUIManager {
     
     func isProcessing() -> Bool {
         switch currentState {
-        case .aiThinking, .streaming:
+        case .streaming:
             return true
         default:
             return false

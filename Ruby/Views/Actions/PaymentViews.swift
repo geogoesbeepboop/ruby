@@ -207,6 +207,79 @@ struct PaymentResultView: View {
     }
 }
 
+// MARK: - Dismissable Wrapper Views
+
+@available(iOS 26.0, *)
+struct DismissablePaymentView<Content: View>: View {
+    let content: Content
+    let onDismiss: () -> Void
+    
+    @State private var dragOffset: CGSize = .zero
+    @State private var isVisible = true
+    
+    init(@ViewBuilder content: () -> Content, onDismiss: @escaping () -> Void) {
+        self.content = content()
+        self.onDismiss = onDismiss
+    }
+    
+    var body: some View {
+        if isVisible {
+            ZStack(alignment: .topTrailing) {
+                content
+                    .offset(dragOffset)
+                    .opacity(1.0 - abs(dragOffset.width) / CGFloat(300))
+                    .scaleEffect(1 - abs(dragOffset.width) / 1000)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                dragOffset = value.translation
+                            }
+                            .onEnded { value in
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    if abs(value.translation.width) > 100 || abs(value.predictedEndTranslation.width) > 200 {
+                                        // Dismiss with animation
+                                        dragOffset = CGSize(width: value.translation.width > 0 ? 400 : -400, height: 0)
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                            dismissPanel()
+                                        }
+                                    } else {
+                                        // Snap back
+                                        dragOffset = .zero
+                                    }
+                                }
+                            }
+                    )
+                
+                // X button
+                Button(action: {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        dismissPanel()
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                        .background(
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                        )
+                }
+                .padding(8)
+                .buttonStyle(PlainButtonStyle())
+            }
+            .transition(.asymmetric(
+                insertion: .scale.combined(with: .opacity),
+                removal: .scale.combined(with: .opacity)
+            ))
+        }
+    }
+    
+    private func dismissPanel() {
+        isVisible = false
+        onDismiss()
+    }
+}
+
 // MARK: - Helper Views
 
 struct DetailRow: View {
@@ -228,3 +301,32 @@ struct DetailRow: View {
         }
     }
 }
+
+// MARK: - Previews
+
+//@available(iOS 26.0, *)
+//#Preview("Dismissable Payment Views") {
+//    ScrollView {
+//        VStack(spacing: 20) {
+//            DismissablePaymentView(
+//                content: {
+//                    PaymentProgressView(paymentFlow: PaymentFlow())
+//                },
+//                onDismiss: { print("Payment progress dismissed") }
+//            )
+//            
+//            DismissablePaymentView(
+//                content: {
+//                    PaymentResultView(result: PaymentResult.PartiallyGenerated(
+//                        confirmationNumber: "PAY123456789",
+//                        newBalance: 1500.75,
+//                        estimatedCompletion: "2024-01-15T14:30:00Z",
+//                        payment: nil
+//                    ))
+//                },
+//                onDismiss: { print("Payment result dismissed") }
+//            )
+//        }
+//        .padding()
+//    }
+//}

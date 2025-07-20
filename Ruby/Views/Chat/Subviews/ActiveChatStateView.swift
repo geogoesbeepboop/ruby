@@ -11,16 +11,11 @@ struct ActiveChatStateView: View {
     @State private var showingReactionPicker = false
     @State private var showingChatHistory = false
     @FocusState private var isTextFieldFocused: Bool
-    @State private var keyboardHeight: CGFloat = 0
     @State private var pendingMessage: String?
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background
-//                MaterialBackground(intensity: 0.6)
-//                    .ignoresSafeArea()
-
                 VStack(spacing: 0) {
                     // Chat header
                     ChatHeaderView(showingChatHistory: $showingChatHistory)
@@ -30,13 +25,10 @@ struct ActiveChatStateView: View {
                     MessagesList(
                         selectedMessageId: $selectedMessageId,
                         showingReactionPicker: $showingReactionPicker,
-                        isTextFieldFocused: isTextFieldFocused
+                        isTextFieldFocused: isTextFieldFocused,
                     )
                     .layoutPriority(1)  // Give priority to messages area
                     .clipped()  // Prevent overflow
-                    // Add bottom padding when keyboard is visible to ensure last message is visible
-//                    .padding(.bottom, isTextFieldFocused ? 60 : 0)
-                    .animation(.easeOut(duration: 0.25), value: isTextFieldFocused)
 
                     // Input panel
                     InputPanel(
@@ -56,14 +48,6 @@ struct ActiveChatStateView: View {
             ReactionPickerSheet(messageId: selectedMessageId)
                 .presentationDetents([.height(200)])
                 .presentationDragIndicator(.visible)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
-            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                keyboardHeight = keyboardFrame.height
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            keyboardHeight = 0
         }
         .task(id: pendingMessage) {
             guard let message = pendingMessage else { return }

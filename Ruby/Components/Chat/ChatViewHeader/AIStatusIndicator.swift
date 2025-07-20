@@ -30,8 +30,6 @@ struct AIStatusIndicator: View {
         switch chatCoordinator.uiManager.currentState {
         case .activeChat:
             return Color.green.opacity(1.0)
-        case .aiThinking:
-            return Color.brandPrimary
         case .streaming:
             return Color.brandSecondary
         case .voiceListening:
@@ -45,8 +43,6 @@ struct AIStatusIndicator: View {
         switch chatCoordinator.uiManager.currentState {
         case .activeChat:
             return "Online"
-        case .aiThinking:
-            return "Thinking..."
         case .streaming:
             return "Typing..."
         case .voiceListening:
