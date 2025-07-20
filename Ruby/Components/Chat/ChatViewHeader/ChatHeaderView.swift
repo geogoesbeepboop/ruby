@@ -8,7 +8,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct ChatHeaderView: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     @State private var showingSettings = false
     @Binding var showingChatHistory: Bool
 
@@ -19,17 +19,11 @@ struct ChatHeaderView: View {
                 Text("Lotus")
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                Color.brandPrimary, Color.brandSecondary,
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                        Color.brandPrimary,
                     )
-                Text(chatStore.settings.selectedPersona.rawValue)
+                Text(chatCoordinator.uiManager.settings.selectedPersona.rawValue)
                     .font(.caption)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.secondary)
             }
 
             // 2. Align Buttons to the Sides
@@ -45,9 +39,11 @@ struct ChatHeaderView: View {
                 Spacer()
 
                 // Save session button
-                if chatStore.currentSession != nil || !chatStore.messages.filter({ $0.isUser }).isEmpty {
+                if chatCoordinator.sessionManager.currentSession != nil || !chatCoordinator.uiManager.messages.filter({ $0.isUser }).isEmpty {
                     Button(action: {
-                        chatStore.saveAndEndSession()
+                        Task {
+                            await chatCoordinator.startNewSession()
+                        }
                     }) {
                         Image(systemName: "checkmark.circle")
                             .font(.title3)
@@ -68,21 +64,7 @@ struct ChatHeaderView: View {
         .padding(.horizontal, 20)
         .padding(.top, 5) // Adjust for status bar
         .padding(.bottom, 10)
-        .background(
-            // Transparent Blue Overlay
-            LinearGradient(
-                gradient: Gradient(stops: [
-                    .init(color: Color.mix(.teal, .white, ratio: 0.25).opacity(0.8), location: 0.0),
-                    .init(color: Color.mix(.teal, .white, ratio: 0.25).opacity(0.7), location: 0.25),
-                    .init(color: Color.mix(.teal, .white, ratio: 0.25).opacity(0.6), location: 0.5),
-                    .init(color: Color.mix(.teal, .white, ratio: 0.25).opacity(0.5), location: 0.75),
-                    .init(color: Color.mix(.teal, .white, ratio: 0.25).opacity(0.4), location: 1.0),
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .background(.ultraThinMaterial) // Frosted glass effect
+        .blurredBackground()
         .sheet(isPresented: $showingSettings) {
             SettingsSheet()
         }
@@ -93,5 +75,5 @@ struct ChatHeaderView: View {
 #Preview {
     @Previewable @State var showingHistory = false
     ChatHeaderView(showingChatHistory: $showingHistory)
-        .environment(ChatStore())
+        .environment(ChatCoordinator())
 }

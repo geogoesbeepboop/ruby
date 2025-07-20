@@ -49,7 +49,7 @@ struct HomeView: View {
                                     LinearGradient(
                                         colors: [
                                             Color.brandPrimary.opacity(0.8),
-                                            Color.brandSecondary.opacity(0.6)
+                                            Color.brandSecondary.opacity(0.4)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -73,11 +73,7 @@ struct HomeView: View {
                                 Text("Lotus AI")
                                     .font(.system(size: 32, weight: .medium, design: .rounded))
                                     .foregroundStyle(
-                                        LinearGradient(
-                                            colors: [Color.brandPrimary, Color.brandSecondary],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
+                                        Color.brandPrimary
                                     )
                                 
                                 Text("What should we do now?")
@@ -117,11 +113,7 @@ struct HomeView: View {
                                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                                 }
                                 .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [Color.brandPrimary, Color.brandSecondary],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
+                                    Color.brandPrimary
                                 )
                                 .frame(maxWidth: 280, minHeight: 50)
                             }

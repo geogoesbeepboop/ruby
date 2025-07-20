@@ -8,7 +8,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct ChatHistorySidebar: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     @Binding var isOpen: Bool
     @State private var searchText = ""
     @State private var showingDeleteAlert = false
@@ -59,14 +59,16 @@ struct ChatHistorySidebar: View {
                                     session: session,
                                     onTap: {
                                         Task {
-                                            await chatStore.loadSession(session)
+                                            await chatCoordinator.loadSession(session)
                                             withAnimation(.easeInOut(duration: 0.3)) {
                                                 isOpen = false
                                             }
                                         }
                                     },
                                     onDelete: {
-                                        chatStore.deleteSession(session)
+                                        Task {
+                                            await chatCoordinator.deleteSession(session)
+                                        }
                                     }
                                 )
                                 .padding(.horizontal, 16)
@@ -92,7 +94,7 @@ struct ChatHistorySidebar: View {
                 }
                 .frame(width: sidebarWidth)
                 .frame(maxHeight: .infinity)
-                .background(Color(.systemGray6))
+                .background(Color.brandPrimary)
                 .clipShape(RoundedRectangle(cornerRadius: 0))
                 .shadow(radius: 10)
                 .offset(x: isOpen ? dragOffset : -sidebarWidth + dragOffset)
@@ -128,8 +130,8 @@ struct ChatHistorySidebar: View {
                 .alert("Clear All Data", isPresented: $showingDeleteAlert) {
                     Button("Cancel", role: .cancel) { }
                     Button("Clear All", role: .destructive) {
-                        for session in chatStore.savedSessions {
-                            chatStore.deleteSession(session)
+                        Task {
+                            await chatCoordinator.clearAllData()
                         }
                     }
                 } message: {
@@ -141,9 +143,9 @@ struct ChatHistorySidebar: View {
     
     private var filteredSessions: [ConversationSession] {
         if searchText.isEmpty {
-            return chatStore.savedSessions
+            return chatCoordinator.sessionManager.savedSessions
         } else {
-            return chatStore.savedSessions.filter { session in
+            return chatCoordinator.sessionManager.savedSessions.filter { session in
                 session.title.localizedCaseInsensitiveContains(searchText)
             }
         }

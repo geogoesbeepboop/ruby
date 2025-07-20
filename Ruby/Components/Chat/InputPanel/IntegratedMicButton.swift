@@ -27,7 +27,7 @@ struct IntegratedMicButton: View {
                         : AnyShapeStyle(
                             LinearGradient(
                                 colors: [
-                                    Color.brandPrimary, Color.brandSecondary,
+                                    Color.brandPrimary
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing

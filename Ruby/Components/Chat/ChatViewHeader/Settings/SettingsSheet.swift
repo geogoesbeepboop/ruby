@@ -8,7 +8,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct SettingsSheet: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -19,14 +19,16 @@ struct SettingsSheet: View {
                         HStack {
                             Text(persona.rawValue)
                             Spacer()
-                            if chatStore.settings.selectedPersona == persona {
+                            if chatCoordinator.uiManager.settings.selectedPersona == persona {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(Color.brandPrimary)
                             }
                         }
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            chatStore.updatePersona(persona)
+                            Task {
+                                await chatCoordinator.updatePersona(persona)
+                            }
                         }
                     }
                 }
@@ -35,20 +37,26 @@ struct SettingsSheet: View {
                     Toggle(
                         "Voice Input",
                         isOn: Binding(
-                            get: { chatStore.settings.voiceEnabled },
+                            get: { chatCoordinator.uiManager.settings.voiceEnabled },
                             set: { newValue in
-                                chatStore.settings.voiceEnabled = newValue
-                                chatStore.saveSettings()
+                                var newSettings = chatCoordinator.uiManager.settings
+                                newSettings.voiceEnabled = newValue
+                                Task {
+                                    await chatCoordinator.updateSettings(newSettings)
+                                }
                             }
                         )
                     )
                     Toggle(
                         "Streaming Responses",
                         isOn: Binding(
-                            get: { chatStore.settings.streamingEnabled },
+                            get: { chatCoordinator.uiManager.settings.streamingEnabled },
                             set: { newValue in
-                                chatStore.settings.streamingEnabled = newValue
-                                chatStore.saveSettings()
+                                var newSettings = chatCoordinator.uiManager.settings
+                                newSettings.streamingEnabled = newValue
+                                Task {
+                                    await chatCoordinator.updateSettings(newSettings)
+                                }
                             }
                         )
                     )
@@ -57,7 +65,7 @@ struct SettingsSheet: View {
                 Section {
                     Button("Start New Conversation") {
                         Task {
-                            await chatStore.startNewSession()
+                            await chatCoordinator.startNewSession()
                             dismiss()
                         }
                     }

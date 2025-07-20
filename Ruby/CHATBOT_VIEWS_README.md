@@ -144,7 +144,7 @@ All views include comprehensive accessibility support:
 
 ## State Management Integration
 
-Views integrate seamlessly with the ChatStore:
+Views integrate seamlessly with the ChatCoordinator:
 
 - **State Observation**: React to state changes
 - **Message Management**: Display and interact with messages
@@ -185,7 +185,7 @@ All views are designed for iOS 26+:
 
 The views integrate with:
 
-- **ChatStore**: State management and business logic
+- **ChatCoordinator**: State management and business logic
 - **GlassmorphicComponents**: Design system components
 - **ChatModels**: Data models and enums
 - **Foundation Models**: AI processing integration

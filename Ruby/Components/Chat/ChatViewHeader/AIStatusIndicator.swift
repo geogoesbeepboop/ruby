@@ -8,7 +8,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct AIStatusIndicator: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
 
     var body: some View {
         HStack(spacing: 8) {
@@ -17,7 +17,7 @@ struct AIStatusIndicator: View {
                 .frame(width: 8, height: 8)
                 .animation(
                     .easeInOut(duration: 0.5),
-                    value: chatStore.currentState
+                    value: chatCoordinator.uiManager.currentState
                 )
 
             Text(statusText)
@@ -27,11 +27,9 @@ struct AIStatusIndicator: View {
     }
 
     private var statusColor: Color {
-        switch chatStore.currentState {
+        switch chatCoordinator.uiManager.currentState {
         case .activeChat:
             return Color.green.opacity(1.0)
-        case .aiThinking:
-            return Color.brandPrimary
         case .streaming:
             return Color.brandSecondary
         case .voiceListening:
@@ -42,11 +40,9 @@ struct AIStatusIndicator: View {
     }
 
     private var statusText: String {
-        switch chatStore.currentState {
+        switch chatCoordinator.uiManager.currentState {
         case .activeChat:
             return "Online"
-        case .aiThinking:
-            return "Thinking..."
         case .streaming:
             return "Typing..."
         case .voiceListening:

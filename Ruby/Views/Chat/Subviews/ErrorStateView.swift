@@ -8,7 +8,7 @@ import SwiftUI
 
 @available(iOS 26.0, *)
 struct ErrorStateView: View {
-    @Environment(ChatStore.self) private var chatStore
+    @Environment(ChatCoordinator.self) private var chatCoordinator
     let errorMessage: String
     
     var body: some View {
@@ -44,7 +44,9 @@ struct ErrorStateView: View {
                 // Retry button
                 Button(action: {
                     Task {
-                        await chatStore.initializeAI()
+                        try await chatCoordinator.aiManager.initializeAI()
+                        chatCoordinator.uiManager.clearError()
+                        chatCoordinator.uiManager.setState(.activeChat)
                     }
                 }) {
                     GlassEffectContainer(
@@ -66,9 +68,10 @@ struct ErrorStateView: View {
                 }
                 
                 // Return to chat button
-                if !chatStore.messages.isEmpty {
+                if !chatCoordinator.uiManager.messages.isEmpty {
                     Button(action: {
-                        chatStore.currentState = .activeChat
+                        chatCoordinator.uiManager.setState(.activeChat)
+                        chatCoordinator.uiManager.clearError()
                     }) {
                         Text("Return to Chat")
                             .font(.system(size: 16, weight: .medium, design: .rounded))

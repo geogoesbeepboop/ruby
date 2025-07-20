@@ -59,7 +59,7 @@ Make sure these files are already in your project:
 ### Required Files:
 - `Components/GlassmorphicComponents.swift` ✓
 - `Models/ChatModels.swift` ✓
-- `Stores/ChatStore.swift` ✓
+- `Stores/ChatCoordinator.swift` ✓
 
 ### Updated Files:
 - `Ruby/ContentView.swift` ✓ (Updated to use MainChatBotView)
@@ -81,7 +81,7 @@ Make sure these files are already in your project:
    - Test on physical device (simulator has limited voice support)
 
 4. **State Management Issues**
-   - Ensure ChatStore is properly initialized
+   - Ensure ChatCoordinator is properly initialized
    - Check that all @Environment declarations are correct
 
 ### Testing Checklist:

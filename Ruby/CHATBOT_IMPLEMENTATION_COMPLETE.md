@@ -13,7 +13,7 @@ Following Apple's latest recommendations, we use the `@Observable` pattern inste
 ┌─────────────────────────────────────────────────────────────┐
 │                    MainChatBotView                          │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │                  ChatStore                          │   │
+│  │                ChatCoordinator                      │   │
 │  │              (@Observable)                          │   │
 │  └─────────────────────────────────────────────────────┘   │
 │  ┌─────────────┬─────────────┬─────────────┬─────────────┐   │
@@ -30,7 +30,7 @@ Ruby/
 ├── Models/
 │   └── ChatModels.swift                 # Data models and Foundation Models types
 ├── Stores/
-│   └── ChatStore.swift                  # Main observable store with Foundation Models integration
+│   └── ChatCoordinator.swift            # Main observable coordinator with distributed managers
 ├── Components/
 │   └── GlassmorphicComponents.swift     # Reusable glassmorphic UI components
 ├── Views/

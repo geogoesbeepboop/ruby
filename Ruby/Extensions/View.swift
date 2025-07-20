@@ -14,4 +14,7 @@ extension View {
                 .onEnded { _ in action(false) }
         )
     }
+    func blurredBackground() -> some View {
+        modifier(BlurredBackgroundModifier())
+    }
 }

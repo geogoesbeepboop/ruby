@@ -9,7 +9,7 @@ import Foundation
 enum ChatState: Equatable {
     case activeChat
     case voiceListening
-    case aiThinking
+//    case aiThinking
     case streaming
     case error(String)
     
@@ -19,8 +19,8 @@ enum ChatState: Equatable {
         return true
       case (.voiceListening, .voiceListening):
         return true
-      case (.aiThinking, .aiThinking):
-        return true
+//      case (.aiThinking, .aiThinking):
+//        return true
       case (.streaming, .streaming):
         return true
       case (.error(let lhsError), .error(let rhsError)):

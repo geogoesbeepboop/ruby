@@ -20,7 +20,7 @@ final class DataManager {
             
             let modelConfiguration = ModelConfiguration(
                 schema: schema,
-                isStoredInMemoryOnly: true
+                isStoredInMemoryOnly: false
             )
 
             let container = try ModelContainer(
@@ -38,7 +38,7 @@ final class DataManager {
     
     // MARK: - Session Management
     
-    func saveSession(_ session: ConversationSession) throws {
+    func saveSession(_ session: ConversationSession) async throws {
         // Check if session already exists
         let predicate = #Predicate<PersistedChatSession> { $0.id == session.id }
         let descriptor = FetchDescriptor<PersistedChatSession>(predicate: predicate)
@@ -190,7 +190,7 @@ final class DataManager {
         return try JSONEncoder().encode(exportData)
     }
     
-    func importData(_ data: Data) throws {
+    func importData(_ data: Data) async throws {
         let exportData = try JSONDecoder().decode(ExportData.self, from: data)
         
         // Clear existing data
@@ -198,7 +198,7 @@ final class DataManager {
         
         // Import sessions
         for session in exportData.sessions {
-            try saveSession(session)
+            try await saveSession(session)
         }
         
         // Import settings

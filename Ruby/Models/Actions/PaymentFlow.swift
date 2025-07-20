@@ -16,29 +16,32 @@ final class PaymentFlow: ObservableObject {
     @Published var errorMessage: String?
     
     init() {
-        print("[PaymentFlow] Initializing PaymentFlow")
+        print("🚀 [PaymentFlow] Initializing PaymentFlow ObservableObject")
         
         let paymentTool = PaymentTool()
-        print("[PaymentFlow] Created PaymentTool: \(paymentTool.name)")
+        print("🔧 [PaymentFlow] Created PaymentTool: \(paymentTool.name)")
         
         session = LanguageModelSession(
             tools: [paymentTool],
             instructions: PaymentInstructions.sendZelle
         )
-        print("[PaymentFlow] LanguageModelSession initialized with PaymentTool")
+        print("📱 [PaymentFlow] LanguageModelSession initialized with PaymentTool")
+        print("✅ [PaymentFlow] PaymentFlow ready for user interactions")
     }
     
     @MainActor
     func handlePaymentFlow() async {
-        print("[PaymentFlow] Starting payment flow")
+        print("\n💳 [PaymentFlow] === PAYMENT WORKFLOW STARTED ===")
+        print("🔄 [PaymentFlow] User clicked 'Send Payment' button")
         startProcessing()
         
         do {
             let prompt = Prompt("Initiate Zelle payment: Send $50.00 to john@example.com with memo 'Lunch money'")
-            print("[PaymentFlow] Created payment prompt: \(prompt)")
+            print("📝 [PaymentFlow] Created payment prompt for LanguageModelSession")
+            print("🤖 [PaymentFlow] Sending prompt to Apple Foundation Models...")
             
             // First stream: Get payment details
-            print("[PaymentFlow] Starting payment details stream")
+            print("🔄 [PaymentFlow] PHASE 1: Streaming payment details from LanguageModelSession")
             let paymentStream = session.streamResponse(
                 to: prompt,
                 generating: Payment.self,
@@ -50,14 +53,14 @@ final class PaymentFlow: ObservableObject {
             )
             
             for try await partialPayment in paymentStream {
-                print("[PaymentFlow] Received partial payment: \(partialPayment)")
                 currentPayment = partialPayment
             }
-            print("[PaymentFlow] Payment details stream completed")
+            print("Transcript for First stream: Get payment details: \(String(describing: session.transcript))")
+            print("✅ [PaymentFlow] PHASE 1 COMPLETE: Payment details generated")
             
             // Second stream: Get payment result/confirmation
             let resultPrompt = Prompt("Complete the payment processing and provide confirmation details including confirmation number and updated balance")
-            print("[PaymentFlow] Starting payment result stream")
+            print("🔄 [PaymentFlow] PHASE 2: Streaming payment result from LanguageModelSession")
             
             let paymentResultStream = session.streamResponse(
                 to: resultPrompt,
@@ -70,22 +73,23 @@ final class PaymentFlow: ObservableObject {
             )
             
             for try await partialPaymentResult in paymentResultStream {
-                print("[PaymentFlow] Received partial payment result: \(partialPaymentResult)")
                 paymentResult = partialPaymentResult
             }
-            print("[PaymentFlow] Payment result stream completed")
+            print("Transcript for Second stream: Get payment result/confirmation: \(String(describing: session.transcript))")
+            print("✅ [PaymentFlow] PHASE 2 COMPLETE: Payment result generated")
             
         } catch {
-            print("[PaymentFlow] Error occurred: \(error.localizedDescription)")
+            print("❌ [PaymentFlow] ERROR in payment workflow: \(error.localizedDescription)")
             setError("Payment failed: \(error.localizedDescription)")
         }
         
-        print("[PaymentFlow] Payment flow completed")
+        print("✅ [PaymentFlow] === PAYMENT WORKFLOW COMPLETED ===\n")
         completeProcessing()
     }
     @MainActor
     func startProcessing() {
-        print("[PaymentFlow] Starting processing - clearing previous state")
+        print("🔄 [PaymentFlow] Setting isProcessing = true, clearing previous state")
+        print("🧹 [PaymentFlow] Clearing currentPayment, paymentResult, errorMessage")
         isProcessing = true
         errorMessage = nil
         currentPayment = nil
@@ -94,13 +98,14 @@ final class PaymentFlow: ObservableObject {
     
     @MainActor
     func completeProcessing() {
-        print("[PaymentFlow] Completing processing")
+        print("✅ [PaymentFlow] Setting isProcessing = false - UI will hide loading state")
         isProcessing = false
     }
     
     @MainActor
     func setError(_ error: String) {
-        print("[PaymentFlow] Setting error: \(error)")
+        print("❌ [PaymentFlow] Setting error state: \(error)")
+        print("🔄 [PaymentFlow] Setting isProcessing = false - UI will show error")
         errorMessage = error
         isProcessing = false
     }
