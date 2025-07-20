@@ -9,8 +9,8 @@ import FoundationModels
 
 @available(iOS 26.0, *)
 final class PaymentTool: Tool {
-    let name = "paymentProcessor"
-    let description = "Necessary for processing and validates payment details, calculates fees, and provides payment processing information"
+    let name = "PaymentTool"
+    let description = "Returns Payment information for a given payment"
     
     @Generable
     struct Arguments {

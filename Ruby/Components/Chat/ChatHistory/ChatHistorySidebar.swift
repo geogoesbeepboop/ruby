@@ -94,7 +94,7 @@ struct ChatHistorySidebar: View {
                 }
                 .frame(width: sidebarWidth)
                 .frame(maxHeight: .infinity)
-                .background(Color(.systemGray6))
+                .background(Color.brandPrimary)
                 .clipShape(RoundedRectangle(cornerRadius: 0))
                 .shadow(radius: 10)
                 .offset(x: isOpen ? dragOffset : -sidebarWidth + dragOffset)

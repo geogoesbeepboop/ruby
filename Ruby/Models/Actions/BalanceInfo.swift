@@ -36,7 +36,7 @@ final class BalanceInfo: ObservableObject {
         startLoading()
         
         do {
-            let prompt = Prompt("Retrieve comprehensive account balances and summary for all user accounts including checking, savings, and credit accounts")
+            let prompt = Prompt("What's my balance in my primary bank account")
             print("📝 [BalanceInfo] Created balance prompt for LanguageModelSession")
             print("🤖 [BalanceInfo] Sending prompt to Apple Foundation Models...")
             
@@ -46,8 +46,8 @@ final class BalanceInfo: ObservableObject {
                 generating: BalancesSummary.self,
                 includeSchemaInPrompt: true,
                 options: GenerationOptions(
-                    temperature: 0.0,
-                    maximumResponseTokens: 600
+                    temperature: 1.0,
+//                    maximumResponseTokens: 600
                 )
             )
             
@@ -55,7 +55,7 @@ final class BalanceInfo: ObservableObject {
                 balancesSummary = partialBalanceSummary
             }
             print("✅ [BalanceInfo] Balance summary stream completed")
-            
+            print("Transcript for balance info stream: Get payment details: \(String(describing: session.transcript))")
             lastRefreshDate = Date()
             print("📅 [BalanceInfo] Updated last refresh date: \(lastRefreshDate!)")
             

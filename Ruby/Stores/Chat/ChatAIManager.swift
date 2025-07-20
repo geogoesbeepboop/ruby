@@ -17,8 +17,12 @@ final class ChatAIManager {
     
     private let logger = Logger(subsystem: "com.ruby.app", category: "ChatAIManager")
     private var isInitialized = false
-    private var languageSession: LanguageModelSession?
-    
+    @ObservationIgnored
+    private var languageSession: LanguageModelSession = {
+        LanguageModelSession()
+    }()
+    @ObservationIgnored
+    private var transcript: Transcript?
     @ObservationIgnored
     private lazy var titleGenerationSession: LanguageModelSession = {
         LanguageModelSession()
@@ -30,10 +34,10 @@ final class ChatAIManager {
     
     // MARK: - Initialization
     
-    init(toolRegistry: ChatToolRegistry) {
+    init(toolRegistry: ChatToolRegistry, initialPersona: AIPersona = .none) {
         self.toolRegistry = toolRegistry
         logger.info("🔧 [ChatAIManager] Initializing ChatAIManager with tool registry")
-        createLanguageSession()
+        createLanguageSession(with: initialPersona.systemPrompt)
     }
     
     // MARK: - AI Management
@@ -50,7 +54,7 @@ final class ChatAIManager {
     }
     
     func updateInstructions(_ instructions: String) {
-        logger.info("📝 [ChatAIManager] Updating instructions with persona: \(instructions.prefix(100))...")
+        logger.info("📝 [ChatAIManager] Updating instructions with based on system prompt: \(instructions.prefix(100))...")
         createLanguageSession(with: instructions)
     }
     
@@ -60,6 +64,7 @@ final class ChatAIManager {
             tools: enabledTools,
             instructions: instructions
         )
+        transcript = languageSession.transcript
         logger.info("🔄 [ChatAIManager] Language session updated with \(enabledTools.count) enabled tools")
     }
     
@@ -72,9 +77,9 @@ final class ChatAIManager {
     ) async throws -> ChatMessage {
         logger.info("🤖 [ChatAIManager] Generating response using strategy pattern")
         
-        guard isInitialized, let session = languageSession else {
-            throw ChatError.other
-        }
+//        guard isInitialized, let session = languageSession else {
+//            throw ChatError.other
+//        }
         
         isProcessing = true
         streamingContent = ""
@@ -91,11 +96,11 @@ final class ChatAIManager {
             self?.streamingContent = content
             onPartialUpdate(content)
         }
-        
+
         do {
             let response = try await strategy.createStrategy().generateResponse(
                 for: input,
-                using: session,
+                using: languageSession,
                 context: context,
                 onPartialUpdate: wrappedPartialUpdate
             )

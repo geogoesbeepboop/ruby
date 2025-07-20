@@ -55,6 +55,7 @@ final class PaymentFlow: ObservableObject {
             for try await partialPayment in paymentStream {
                 currentPayment = partialPayment
             }
+            print("Transcript for First stream: Get payment details: \(String(describing: session.transcript))")
             print("✅ [PaymentFlow] PHASE 1 COMPLETE: Payment details generated")
             
             // Second stream: Get payment result/confirmation
@@ -74,6 +75,7 @@ final class PaymentFlow: ObservableObject {
             for try await partialPaymentResult in paymentResultStream {
                 paymentResult = partialPaymentResult
             }
+            print("Transcript for Second stream: Get payment result/confirmation: \(String(describing: session.transcript))")
             print("✅ [PaymentFlow] PHASE 2 COMPLETE: Payment result generated")
             
         } catch {

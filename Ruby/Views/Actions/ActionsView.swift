@@ -28,11 +28,11 @@ struct ActionsView: View {
                             Text("Banking Actions")
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
-                                .foregroundColor(.primary)
+                                .foregroundColor(.brandSecondary)
                             
                             Text("Trigger banking workflows with AI assistance")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.brandSecondary)
                         }
                         .padding(.top, 20)
                         

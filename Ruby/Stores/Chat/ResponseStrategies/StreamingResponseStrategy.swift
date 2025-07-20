@@ -56,7 +56,7 @@ final class StreamingResponseStrategy: ObservableObject, ResponseStrategy {
                 }
                 
                 let responseTime = Date().timeIntervalSince(responseStartTime)
-                
+                logger.info("Transcript: \(String(describing: session.transcript))")
                 logger.info("🏁 [StreamingStrategy] Plain text streaming completed, total chunks: \(chunkCount)")
                 logger.info("📥 [StreamingStrategy] Final response generated in \(String(format: "%.2f", responseTime))s")
                 
@@ -111,6 +111,8 @@ final class StreamingResponseStrategy: ObservableObject, ResponseStrategy {
                     throw ChatError.other
                 }
                 
+                logger.info("Transcript: \(String(describing: session.transcript))")
+
                 logger.info("🏁 [StreamingStrategy] Structured streaming completed, total chunks: \(chunkCount)")
                 logger.info("📥 [StreamingStrategy] Final response generated in \(String(format: "%.2f", responseTime))s")
                 logger.info("🎭 [StreamingStrategy] Detected tone: '\(self.partialResponse?.tone as NSObject?)'")

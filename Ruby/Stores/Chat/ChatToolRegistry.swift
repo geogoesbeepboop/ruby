@@ -28,12 +28,12 @@ final class ChatToolRegistry {
         logger.info("📋 [ChatToolRegistry] Registering default tools")
         
         let defaultTools: [any Tool] = [
-            WeatherTool(),
-            WebSearchTool(httpClient: httpClient),
-            CalculatorTool(),
-            ReminderTool(),
-            DateTimeTool(),
-            NewsTool(httpClient: httpClient)
+            WeatherTool()
+//            WebSearchTool(httpClient: httpClient),
+//            CalculatorTool(),
+//            ReminderTool(),
+//            DateTimeTool(),
+//            NewsTool(httpClient: httpClient)
         ]
         
         for tool in defaultTools {

@@ -49,7 +49,7 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
                 }
                 
                 let responseTime = Date().timeIntervalSince(responseStartTime)
-                
+                logger.info("Transcript: \(String(describing: session.transcript))")
                 logger.info("📥 [CompleteStrategy] Plain text response generated in \(String(format: "%.2f", responseTime))s")
                 
                 let chatMessage = ChatMessage(
@@ -90,6 +90,7 @@ final class CompleteResponseStrategy: ObservableObject, ResponseStrategy {
                 }
                 
                 let responseTime = Date().timeIntervalSince(responseStartTime)
+                logger.info("Transcript: \(String(describing: session.transcript))")
                 logger.info("📥 [CompleteStrategy] Structured response generated in \(String(format: "%.2f", responseTime))s")
                 logger.info("🎭 [CompleteStrategy] Detected tone: '\(self.partialResponse?.tone as NSObject?)'")
                 logger.info("📊 [CompleteStrategy] Confidence score: \(String(format: "%.2f", self.partialResponse?.confidence ?? "N/A"))")

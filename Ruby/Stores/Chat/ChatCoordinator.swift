@@ -28,7 +28,6 @@ final class ChatCoordinator {
         self.voiceManager = ChatVoiceManager()
         self.uiManager = ChatUIManager(dataManager: dataManager)
         self.aiManager = ChatAIManager(toolRegistry: toolRegistry)
-
         logger.info("🔧 [ChatCoordinator] Initializing ChatCoordinator with tool registry")
         
         Task {
@@ -43,6 +42,9 @@ final class ChatCoordinator {
         
         do {
             try await aiManager.initializeAI()
+            
+            // Set up initial persona after AI is initialized
+            aiManager.updateInstructions(uiManager.settings.selectedPersona.systemPrompt)
             
             // Initialize new session if none exists
             if sessionManager.currentSession == nil {

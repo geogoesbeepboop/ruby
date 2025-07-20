@@ -9,8 +9,8 @@ import FoundationModels
 
 @available(iOS 26.0, *)
 final class BalanceTool: Tool {
-    let name = "balanceRetriever"
-    let description = "Retrieves current account balances, calculates totals, and checks for account alerts"
+    let name = "BalanceTool"
+    let description = "Returns Balance information about user account balances"
     
     @Generable
     struct Arguments {

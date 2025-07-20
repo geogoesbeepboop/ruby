@@ -50,7 +50,8 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
                 let responseTime = Date().timeIntervalSince(responseStartTime)
                 
                 logger.info("📥 [StructuredStrategy] Plain text response generated in \(String(format: "%.2f", responseTime))s")
-                
+                logger.info("Transcript: \(String(describing: session.transcript))")
+
                 let chatMessage = ChatMessage(
                     content: accumulatedContent,
                     isUser: false,
@@ -88,7 +89,7 @@ final class StructuredResponseStrategy: ObservableObject, ResponseStrategy {
                 }
                 
                 let responseTime = Date().timeIntervalSince(responseStartTime)
-                
+                logger.info("Transcript: \(String(describing: session.transcript))")
                 logger.info("📥 [StructuredStrategy] Structured conversation turn generated in \(String(format: "%.2f", responseTime))s")
                 logger.info("🎭 [StructuredStrategy] User intent: '\(self.partialResponse?.userAnalysis?.intent?.rawValue as NSObject?)'")
                 logger.info("📊 [StructuredStrategy] Input complexity: \(self.partialResponse?.userAnalysis?.complexity as NSObject?)/5")
